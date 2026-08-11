@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+@theme {
+  --color-vtc-navy: #1f2f86;
+  --color-vtc-navy-dark: #172470;
+  --color-vtc-navy-light: #2d3fa0;
+  --color-vtc-navy-50: #eef0fb;
+  --color-vtc-navy-100: #d8dcf5;
+
+  /* Legacy aliases for subpages */
+  --color-vtc-blue-50: #eef0fb;
+  --color-vtc-blue-100: #d8dcf5;
+  --color-vtc-blue-600: #2d3fa0;
+  --color-vtc-blue-700: #1f2f86;
+  --color-vtc-blue-800: #172470;
+  --color-vtc-blue-900: #131d6e;
+  --color-vtc-blue-950: #0a1040;
+
+  --color-vtc-gray-50: #f8f9fb;
+  --color-vtc-gray-100: #f1f3f6;
+  --color-vtc-gray-200: #e4e7ec;
+  --color-vtc-gray-300: #cdd2db;
+  --color-vtc-gray-500: #6b7280;
+  --color-vtc-gray-700: #374151;
+  --color-vtc-gray-900: #111827;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    overflow-x: clip;
+  }
+
+  body {
+    @apply bg-white text-gray-900 antialiased;
+    overflow-x: clip;
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-vtc-navy;
+  }
+}
+
+@layer utilities {
+  .section-padding {
+    @apply px-4 py-20 sm:px-8 sm:py-24 lg:px-12 lg:py-32;
+  }
+
+  .container-narrow {
+    @apply mx-auto w-full max-w-7xl min-w-0;
+  }
+
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animation-delay-100 {
+  animation-delay: 100ms;
+}
+.animation-delay-200 {
+  animation-delay: 200ms;
+}
+.animation-delay-300 {
+  animation-delay: 300ms;
+}
+.animation-delay-400 {
+  animation-delay: 400ms;
+}
