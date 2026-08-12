@@ -47,11 +47,9 @@ export function Header() {
           <Image
             src={images.logo}
             alt={`${siteConfig.name} logotipas`}
-            width={240}
-            height={56}
-            className={`h-9 w-auto max-w-[9.5rem] object-contain object-left transition-all duration-300 sm:h-11 sm:max-w-none md:h-14 ${
-              isTransparent ? "brightness-0 invert" : ""
-            }`}
+            width={52}
+            height={52}
+            className="h-10 w-auto max-w-[9.5rem] object-contain object-left transition-all duration-300 sm:max-w-none md:h-[52px]"
             priority
           />
         </Link>

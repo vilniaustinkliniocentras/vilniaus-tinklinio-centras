@@ -35,7 +35,7 @@ export const headerNavLinks = [
 export const navLinks = headerNavLinks;
 
 export const images = {
-  logo: "/logo.jpg",
+  logo: "/images/logo.png",
   hero: "/images/hero/hero-main.jpg",
   community: {
     one: "/images/community/community-1.jpg.jpeg",

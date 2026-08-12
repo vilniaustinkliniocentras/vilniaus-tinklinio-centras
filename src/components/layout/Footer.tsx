@@ -14,9 +14,9 @@ export function Footer() {
               <Image
                 src={images.logo}
                 alt={`${siteConfig.name} logotipas`}
-                width={200}
-                height={48}
-                className="h-10 w-auto object-contain md:h-12"
+                width={52}
+                height={52}
+                className="h-10 w-auto object-contain md:h-[52px]"
               />
             </Link>
             <p className="mt-5 max-w-sm text-sm leading-relaxed text-gray-500">
