@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState, type FormEvent } from "react";
-import { submitRegistration } from "@/lib/registration/submit-registration";
+import { submitRegistration } from "@/lib/actions/submit-registration";
+import { siteConfig } from "@/lib/constants";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Input } from "@/components/ui/Input";
@@ -36,10 +37,9 @@ const initialFormData: RegistrationFormData = {
 };
 
 const registrationSuccessContact = {
-  venueName: "Savanorių sporto arena",
-  venueAddress: "Savanorių pr. 178B, Vilnius",
-  phone: "+370 628 24887",
-  email: "vilniaustinkliniocentras@gmail.com",
+  phone: siteConfig.contact.phone,
+  email: siteConfig.contact.email,
+  phoneLink: siteConfig.contact.phoneLink,
 };
 
 export function RegistrationForm() {
@@ -122,33 +122,24 @@ export function RegistrationForm() {
           </svg>
         </div>
         <h2 className="text-xl font-bold text-green-900 sm:text-2xl">
-          Registracija sėkminga!
+          Registracija sėkmingai gauta!
         </h2>
         <p className="mt-3 text-green-800">
-          Ačiū, kad pasirinkote Vilniaus tinklinio centrą.
+          Dėkojame už registraciją.
           <br />
-          Per 1–2 darbo dienas susisieksime telefonu arba el. paštu ir padėsime
-          parinkti tinkamiausią treniruočių grupę.
+          Per artimiausias 24 valandas su Jumis susisieksime dėl pirmosios treniruotės.
         </p>
         <div className="mt-6 space-y-3 text-left text-sm text-green-800">
           <div>
-            <p className="font-medium">Treniruočių vieta:</p>
-            <p className="break-words">{registrationSuccessContact.venueName}</p>
-            <p className="break-words">{registrationSuccessContact.venueAddress}</p>
-          </div>
-          <div>
-            <p className="font-medium">Telefonas:</p>
+            <p className="font-medium">Jeigu turite klausimų:</p>
             <p>
               <a
-                href={`tel:${registrationSuccessContact.phone.replace(/\s/g, "")}`}
+                href={registrationSuccessContact.phoneLink}
                 className="break-all font-medium underline hover:text-green-900"
               >
                 {registrationSuccessContact.phone}
               </a>
             </p>
-          </div>
-          <div>
-            <p className="font-medium">El. paštas:</p>
             <p>
               <a
                 href={`mailto:${registrationSuccessContact.email}`}

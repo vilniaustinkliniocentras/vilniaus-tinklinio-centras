@@ -1,5 +1,8 @@
-import { createClient } from "@/lib/supabase/client";
+"use server";
+
+import { sendRegistrationEmails } from "@/lib/email/registration-emails";
 import { getPreferredTrainingTimes } from "@/lib/constants/training-groups";
+import { createClient } from "@/lib/supabase/server";
 import {
   hasErrors,
   validateRegistrationForm,
@@ -34,6 +37,7 @@ export async function submitRegistration(
   }
 
   const normalizedPhone = data.phone.replace(/\s/g, "");
+  const preferredTrainingTimes = getPreferredTrainingTimes(data.trainingGroup);
 
   const { error } = await supabase.from("registrations").insert({
     parent_name: data.parentName.trim(),
@@ -43,7 +47,7 @@ export async function submitRegistration(
     child_birth_date: data.childBirthDate,
     volleyball_experience: data.experience,
     training_group: data.trainingGroup,
-    preferred_training_times: getPreferredTrainingTimes(data.trainingGroup),
+    preferred_training_times: preferredTrainingTimes,
     referral_source: data.referralSource,
     additional_comments: data.comments.trim() || null,
     privacy_consent: data.privacyConsent,
@@ -57,6 +61,15 @@ export async function submitRegistration(
       message:
         "Nepavyko pateikti registracijos. Bandykite dar kartą arba susisiekite su mumis.",
     };
+  }
+
+  try {
+    await sendRegistrationEmails({
+      ...data,
+      preferredTrainingTimes,
+    });
+  } catch (emailError) {
+    console.error("Registration emails failed:", emailError);
   }
 
   return { success: true };
