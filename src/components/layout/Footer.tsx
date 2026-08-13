@@ -50,23 +50,33 @@ export function Footer() {
                 <h3 className="text-xs font-semibold uppercase tracking-widest text-vtc-navy">
                   El. paštas
                 </h3>
-                <p className="mt-3 break-words text-sm text-gray-600">
-                  {siteConfig.contact.email ?? "Informacija ruošiama"}
-                </p>
+                <a
+                  href={`mailto:${siteConfig.contact.email}`}
+                  className="mt-3 block break-words text-sm text-gray-600 transition-colors hover:text-vtc-navy"
+                >
+                  {siteConfig.contact.email}
+                </a>
               </div>
               <div>
                 <h3 className="text-xs font-semibold uppercase tracking-widest text-vtc-navy">
                   Telefonas
                 </h3>
-                <p className="mt-3 break-words text-sm text-gray-600">
-                  {siteConfig.contact.phone ?? "Informacija ruošiama"}
-                </p>
+                <a
+                  href={siteConfig.contact.phoneLink}
+                  className="mt-3 block break-words text-sm text-gray-600 transition-colors hover:text-vtc-navy"
+                >
+                  {siteConfig.contact.phone}
+                </a>
               </div>
               <div>
                 <h3 className="text-xs font-semibold uppercase tracking-widest text-vtc-navy">
                   Adresas
                 </h3>
-                <p className="mt-3 break-words text-sm text-gray-600">{siteConfig.contact.address}</p>
+                <p className="mt-3 break-words text-sm text-gray-600">
+                  {siteConfig.contact.venue}
+                  <br />
+                  {siteConfig.contact.address}
+                </p>
               </div>
             </div>
           </div>

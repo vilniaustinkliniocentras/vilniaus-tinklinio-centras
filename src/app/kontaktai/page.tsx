@@ -27,19 +27,31 @@ export default function KontaktaiPage() {
               <div>
                 <dt className="text-sm font-medium text-gray-500">El. paštas</dt>
                 <dd className="mt-1 text-gray-700">
-                  Kontaktinis el. paštas bus paskelbtas netrukus.
+                  <a
+                    href={`mailto:${siteConfig.contact.email}`}
+                    className="break-words transition-colors hover:text-vtc-blue-900"
+                  >
+                    {siteConfig.contact.email}
+                  </a>
                 </dd>
               </div>
               <div>
                 <dt className="text-sm font-medium text-gray-500">Telefonas</dt>
                 <dd className="mt-1 text-gray-700">
-                  Kontaktinis telefono numeris bus paskelbtas netrukus.
+                  <a
+                    href={siteConfig.contact.phoneLink}
+                    className="break-words transition-colors hover:text-vtc-blue-900"
+                  >
+                    {siteConfig.contact.phone}
+                  </a>
                 </dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">Vieta</dt>
+                <dt className="text-sm font-medium text-gray-500">Treniruočių vieta</dt>
                 <dd className="mt-1 text-gray-700">
-                  Treniruočių vieta Vilniuje bus paskelbta netrukus.
+                  {siteConfig.contact.venue}
+                  <br />
+                  {siteConfig.contact.address}
                 </dd>
               </div>
             </dl>

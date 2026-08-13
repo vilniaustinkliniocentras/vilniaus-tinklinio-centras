@@ -41,17 +41,20 @@ export function Header() {
       <div className="container-narrow flex h-[4.75rem] min-w-0 items-center justify-between gap-2 px-4 sm:gap-3 sm:px-8 lg:px-12">
         <Link
           href="/"
-          className="relative flex min-w-0 shrink items-center rounded-lg"
+          className="relative flex shrink-0 items-center rounded-lg"
           aria-label={`${siteConfig.name} – pradžia`}
         >
-          <Image
-            src={images.logo}
-            alt={`${siteConfig.name} logotipas`}
-            width={56}
-            height={56}
-            className="h-[46px] w-auto max-w-[9.5rem] object-contain object-left transition-all duration-300 sm:max-w-none md:h-[50px] lg:h-[56px]"
-            priority
-          />
+          <span className="relative block h-[40px] shrink-0 md:h-[46px] lg:h-[52px]">
+            <Image
+              src={images.logo}
+              alt={`${siteConfig.name} logotipas`}
+              width={104}
+              height={104}
+              sizes="(max-width: 767px) 40px, (max-width: 1023px) 46px, 52px"
+              className="h-full w-auto object-contain object-left transition-all duration-300"
+              priority
+            />
+          </span>
         </Link>
 
         <nav

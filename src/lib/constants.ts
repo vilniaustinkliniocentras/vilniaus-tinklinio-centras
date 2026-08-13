@@ -6,18 +6,20 @@ export const siteConfig = {
     "Vaikų ir paauglių tinklinio treniruotės Vilniuje. Auginame jaunus tinklininkus, ugdome charakterį ir meilę sportui.",
   url: "https://vilniaus-tinklinio-centras.lt",
   contact: {
-    email: null,
-    phone: null,
-    address: "Vilnius, Lietuva",
+    email: "vilniaustinkliniocentras@gmail.com",
+    phone: "+370 628 24887",
+    phoneLink: "tel:+37062824887",
+    venue: "Savanorių sporto arena",
+    address: "Savanorių pr. 178B, Vilnius",
   },
   social: {
     facebook: {
       name: "Vilniaus tinklinio centras",
-      url: "https://www.facebook.com/",
+      url: "https://www.facebook.com/smtaurasvtc/?locale=lt_LT",
     },
     instagram: {
       handle: "vilniaustinkliniocentras_vtc",
-      url: "https://www.instagram.com/vilniaustinkliniocentras_vtc",
+      url: "https://www.instagram.com/vilniaustinkliniocentras_vtc/",
     },
   },
 } as const;

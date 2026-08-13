@@ -15,14 +15,24 @@ export function Contact() {
           <div className="rounded-xl border border-vtc-blue-100 p-6">
             <h3 className="font-semibold text-vtc-blue-900">El. paštas</h3>
             <p className="mt-2 text-sm text-gray-600">
-              Kontaktinis el. paštas bus paskelbtas netrukus.
+              <a
+                href={`mailto:${siteConfig.contact.email}`}
+                className="break-words transition-colors hover:text-vtc-blue-900"
+              >
+                {siteConfig.contact.email}
+              </a>
             </p>
           </div>
 
           <div className="rounded-xl border border-vtc-blue-100 p-6">
             <h3 className="font-semibold text-vtc-blue-900">Telefonas</h3>
             <p className="mt-2 text-sm text-gray-600">
-              Kontaktinis telefono numeris bus paskelbtas netrukus.
+              <a
+                href={siteConfig.contact.phoneLink}
+                className="break-words transition-colors hover:text-vtc-blue-900"
+              >
+                {siteConfig.contact.phone}
+              </a>
             </p>
           </div>
 
