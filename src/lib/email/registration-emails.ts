@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 import { siteConfig } from "@/lib/constants";
-import { formatTrainingGroupScheduleDisplay } from "@/lib/constants/training-groups";
+import { formatTrainingGroupDisplay, formatTrainingGroupScheduleDisplay } from "@/lib/constants/training-groups";
 import type { RegistrationFormData } from "@/lib/validation/registration";
 
 const FROM_EMAIL =
@@ -98,7 +98,7 @@ function buildAdminEmailHtml(payload: RegistrationEmailPayload): string {
     ["El. paštas", payload.email.trim().toLowerCase()],
     ["Telefonas", payload.phone.replace(/\s/g, "")],
     ["Tinklinio patirtis", payload.experience],
-    ["Pasirinkta treniruočių grupė", payload.trainingGroup],
+    ["Pasirinkta treniruočių grupė", formatTrainingGroupDisplay(payload.trainingGroup)],
     ["Treniruočių laikas", scheduleDisplay],
     ["Kaip apie mus sužinojo", payload.referralSource],
     ["Papildoma informacija", payload.comments.trim() || "—"],

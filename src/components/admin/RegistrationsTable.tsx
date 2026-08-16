@@ -9,6 +9,7 @@ import {
   statusLabels,
   type RegistrationStatus,
 } from "@/lib/constants/registrations";
+import { formatTrainingGroupDisplay } from "@/lib/constants/training-groups";
 import type { Registration } from "@/types/database";
 
 interface RegistrationsTableProps {
@@ -25,7 +26,11 @@ function formatDate(dateString: string): string {
 }
 
 function displayTrainingGroup(row: Registration): string {
-  return row.training_group ?? row.preferred_training_times ?? "—";
+  if (row.training_group) {
+    return formatTrainingGroupDisplay(row.training_group);
+  }
+
+  return row.preferred_training_times ?? "—";
 }
 
 function formatDateTime(dateString: string): string {
