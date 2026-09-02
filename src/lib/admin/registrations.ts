@@ -26,3 +26,47 @@ export async function fetchRegistrationById(id: string): Promise<Registration | 
 
   return data as Registration;
 }
+
+export async function markContractSent(
+  id: string,
+  email: string
+): Promise<{ success: true; contractSentAt: string; contractSentTo: string } | { success: false; message: string }> {
+  if (!UUID_REGEX.test(id)) {
+    return { success: false, message: "Neteisingas registracijos identifikatorius." };
+  }
+
+  const supabase = createAdminClient();
+  if (!supabase) {
+    return {
+      success: false,
+      message: "Supabase administracijos konfigūracija nebaigta.",
+    };
+  }
+
+  const sentAt = new Date().toISOString();
+  const normalizedEmail = email.trim().toLowerCase();
+
+  const { data, error } = await supabase
+    .from("registrations")
+    .update({
+      contract_sent_at: sentAt,
+      contract_sent_to: normalizedEmail,
+    })
+    .eq("id", id)
+    .select("contract_sent_at, contract_sent_to")
+    .maybeSingle();
+
+  if (error || !data?.contract_sent_at || !data.contract_sent_to) {
+    console.error("Failed to mark contract as sent:", error?.message ?? "No rows updated");
+    return {
+      success: false,
+      message: "Sutartis išsiųsta, bet nepavyko užfiksuoti išsiuntimo datos.",
+    };
+  }
+
+  return {
+    success: true,
+    contractSentAt: data.contract_sent_at,
+    contractSentTo: data.contract_sent_to,
+  };
+}

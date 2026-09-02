@@ -7,12 +7,17 @@ import {
   type RegistrationStatus,
 } from "@/lib/constants/registrations";
 import { RegistrationsTable } from "@/components/admin/RegistrationsTable";
+import type { ContractTestModeConfig } from "@/lib/email/contract-email-override";
 
 interface RegistrationsAdminPanelProps {
   registrations: Registration[];
+  contractTestMode: ContractTestModeConfig;
 }
 
-export function RegistrationsAdminPanel({ registrations }: RegistrationsAdminPanelProps) {
+export function RegistrationsAdminPanel({
+  registrations,
+  contractTestMode,
+}: RegistrationsAdminPanelProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<RegistrationStatus | "all">("all");
   const [localRegistrations, setLocalRegistrations] = useState(registrations);
@@ -45,6 +50,16 @@ export function RegistrationsAdminPanel({ registrations }: RegistrationsAdminPan
   function handleStatusUpdated(id: string, status: RegistrationStatus) {
     setLocalRegistrations((prev) =>
       prev.map((row) => (row.id === id ? { ...row, status } : row))
+    );
+  }
+
+  function handleContractSent(id: string, sentAt: string, sentTo: string) {
+    setLocalRegistrations((prev) =>
+      prev.map((row) =>
+        row.id === id
+          ? { ...row, contract_sent_at: sentAt, contract_sent_to: sentTo }
+          : row
+      )
     );
   }
 
@@ -103,7 +118,9 @@ export function RegistrationsAdminPanel({ registrations }: RegistrationsAdminPan
       ) : (
         <RegistrationsTable
           registrations={filtered}
+          contractTestMode={contractTestMode}
           onStatusUpdated={handleStatusUpdated}
+          onContractSent={handleContractSent}
         />
       )}
     </div>

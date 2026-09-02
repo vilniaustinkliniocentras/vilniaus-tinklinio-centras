@@ -13,6 +13,8 @@ export interface Registration {
   privacy_consent: boolean;
   status: string;
   created_at: string;
+  contract_sent_at: string | null;
+  contract_sent_to: string | null;
 }
 
 export interface RegistrationInsert {

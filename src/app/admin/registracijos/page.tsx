@@ -6,6 +6,7 @@ import { RegistrationsAdminPanel } from "@/components/admin/RegistrationsAdminPa
 
 import { getRegistrations } from "@/lib/actions/admin-auth";
 import { isAdminAuthenticated } from "@/lib/admin/auth";
+import { getContractTestModeConfig } from "@/lib/email/contract-email-override";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +53,7 @@ export default async function AdminRegistracijosPage() {
 
 
   const { data, error } = await getRegistrations();
+  const contractTestMode = getContractTestModeConfig();
 
   const totalCount = data?.length ?? 0;
 
@@ -91,6 +93,20 @@ export default async function AdminRegistracijosPage() {
 
 
 
+        {contractTestMode.enabled ? (
+          <div
+            className="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900"
+            role="status"
+          >
+            <p className="font-semibold uppercase tracking-wide">Testavimo režimas</p>
+            <p className="mt-1">Sutarties laiškai nebus siunčiami tėvams.</p>
+            <p className="mt-1">
+              Testinis gavėjas:{" "}
+              <span className="font-medium">{contractTestMode.recipient}</span>
+            </p>
+          </div>
+        ) : null}
+
         {error ? (
 
           <div
@@ -107,7 +123,10 @@ export default async function AdminRegistracijosPage() {
 
         ) : (
 
-          <RegistrationsAdminPanel registrations={data ?? []} />
+          <RegistrationsAdminPanel
+            registrations={data ?? []}
+            contractTestMode={contractTestMode}
+          />
 
         )}
 

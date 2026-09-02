@@ -11,11 +11,14 @@ import {
 } from "@/lib/constants/registrations";
 import { formatTrainingGroupDisplay } from "@/lib/constants/training-groups";
 import type { Registration } from "@/types/database";
-import { PrepareContractButton } from "@/components/admin/PrepareContractButton";
+import type { ContractTestModeConfig } from "@/lib/email/contract-email-override";
+import { ContractActions } from "@/components/admin/ContractActions";
 
 interface RegistrationsTableProps {
   registrations: Registration[];
+  contractTestMode: ContractTestModeConfig;
   onStatusUpdated: (id: string, status: RegistrationStatus) => void;
+  onContractSent?: (id: string, sentAt: string, sentTo: string) => void;
 }
 
 function formatDate(dateString: string): string {
@@ -117,12 +120,14 @@ function StatusSelect({
 
 export function RegistrationsTable({
   registrations,
+  contractTestMode,
   onStatusUpdated,
+  onContractSent,
 }: RegistrationsTableProps) {
   return (
     <>
       <div className="hidden overflow-x-auto rounded-xl border border-vtc-gray-200 bg-white lg:block">
-        <table className="w-full min-w-[1080px] text-left text-sm">
+        <table className="w-full min-w-[1180px] text-left text-sm">
           <thead className="border-b border-vtc-gray-200 bg-vtc-gray-50">
             <tr>
               <th className="px-4 py-3 font-semibold text-gray-700">Vaikas</th>
@@ -163,7 +168,17 @@ export function RegistrationsTable({
                   />
                 </td>
                 <td className="px-4 py-3">
-                  <PrepareContractButton registrationId={row.id} />
+                  <ContractActions
+                    registrationId={row.id}
+                    childName={row.child_name}
+                    parentName={row.parent_name}
+                    parentEmail={row.parent_email}
+                    contractSentAt={row.contract_sent_at}
+                    contractTestMode={contractTestMode}
+                    onContractSent={(sentAt, sentTo) =>
+                      onContractSent?.(row.id, sentAt, sentTo)
+                    }
+                  />
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-gray-500">
                   {formatDateTime(row.created_at)}
@@ -238,7 +253,17 @@ export function RegistrationsTable({
             </div>
 
             <div className="mt-4 border-t border-vtc-gray-100 pt-4">
-              <PrepareContractButton registrationId={row.id} />
+              <ContractActions
+                registrationId={row.id}
+                childName={row.child_name}
+                parentName={row.parent_name}
+                parentEmail={row.parent_email}
+                contractSentAt={row.contract_sent_at}
+                contractTestMode={contractTestMode}
+                onContractSent={(sentAt, sentTo) =>
+                  onContractSent?.(row.id, sentAt, sentTo)
+                }
+              />
             </div>
           </article>
         ))}
