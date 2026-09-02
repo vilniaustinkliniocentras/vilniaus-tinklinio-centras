@@ -4,7 +4,8 @@ import { AdminLoginForm } from "@/components/admin/AdminLoginForm";
 
 import { RegistrationsAdminPanel } from "@/components/admin/RegistrationsAdminPanel";
 
-import { getRegistrations, isAdminAuthenticated } from "@/lib/actions/admin-auth";
+import { getRegistrations } from "@/lib/actions/admin-auth";
+import { isAdminAuthenticated } from "@/lib/admin/auth";
 
 export const dynamic = "force-dynamic";
 

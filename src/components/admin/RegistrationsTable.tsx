@@ -11,6 +11,7 @@ import {
 } from "@/lib/constants/registrations";
 import { formatTrainingGroupDisplay } from "@/lib/constants/training-groups";
 import type { Registration } from "@/types/database";
+import { PrepareContractButton } from "@/components/admin/PrepareContractButton";
 
 interface RegistrationsTableProps {
   registrations: Registration[];
@@ -121,7 +122,7 @@ export function RegistrationsTable({
   return (
     <>
       <div className="hidden overflow-x-auto rounded-xl border border-vtc-gray-200 bg-white lg:block">
-        <table className="w-full min-w-[960px] text-left text-sm">
+        <table className="w-full min-w-[1080px] text-left text-sm">
           <thead className="border-b border-vtc-gray-200 bg-vtc-gray-50">
             <tr>
               <th className="px-4 py-3 font-semibold text-gray-700">Vaikas</th>
@@ -133,6 +134,7 @@ export function RegistrationsTable({
               <th className="px-4 py-3 font-semibold text-gray-700">Grupė</th>
               <th className="px-4 py-3 font-semibold text-gray-700">Šaltinis</th>
               <th className="px-4 py-3 font-semibold text-gray-700">Statusas</th>
+              <th className="px-4 py-3 font-semibold text-gray-700">Sutartis</th>
               <th className="px-4 py-3 font-semibold text-gray-700">Data</th>
             </tr>
           </thead>
@@ -159,6 +161,9 @@ export function RegistrationsTable({
                     currentStatus={row.status}
                     onUpdated={(status) => onStatusUpdated(row.id, status)}
                   />
+                </td>
+                <td className="px-4 py-3">
+                  <PrepareContractButton registrationId={row.id} />
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-gray-500">
                   {formatDateTime(row.created_at)}
@@ -230,6 +235,10 @@ export function RegistrationsTable({
                 currentStatus={row.status}
                 onUpdated={(status) => onStatusUpdated(row.id, status)}
               />
+            </div>
+
+            <div className="mt-4 border-t border-vtc-gray-100 pt-4">
+              <PrepareContractButton registrationId={row.id} />
             </div>
           </article>
         ))}

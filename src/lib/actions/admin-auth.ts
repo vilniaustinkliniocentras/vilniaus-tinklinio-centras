@@ -2,9 +2,14 @@
 
 import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  ADMIN_COOKIE,
+  ADMIN_COOKIE_VALUE,
+  adminCookieClearOptions,
+  adminCookieOptions,
+  isAdminAuthenticated,
+} from "@/lib/admin/auth";
 import type { Registration } from "@/types/database";
-
-const ADMIN_COOKIE = "vtc_admin_auth";
 
 export async function loginAdmin(password: string): Promise<{ success: boolean; message: string }> {
   const adminPassword = process.env.ADMIN_PASSWORD;
@@ -24,34 +29,14 @@ export async function loginAdmin(password: string): Promise<{ success: boolean; 
   }
 
   const cookieStore = await cookies();
-  cookieStore.set(ADMIN_COOKIE, "authenticated", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/admin",
-    maxAge: 60 * 60 * 8,
-  });
+  cookieStore.set(ADMIN_COOKIE, ADMIN_COOKIE_VALUE, adminCookieOptions);
 
   return { success: true, message: "Prisijungta." };
 }
 
 export async function logoutAdmin(): Promise<void> {
   const cookieStore = await cookies();
-  cookieStore.set(ADMIN_COOKIE, "", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/admin",
-    maxAge: 0,
-  });
-}
-
-export async function isAdminAuthenticated(): Promise<boolean> {
-  const adminPassword = process.env.ADMIN_PASSWORD;
-  if (!adminPassword) return false;
-
-  const cookieStore = await cookies();
-  return cookieStore.get(ADMIN_COOKIE)?.value === "authenticated";
+  cookieStore.set(ADMIN_COOKIE, "", adminCookieClearOptions);
 }
 
 export async function getRegistrations(): Promise<{

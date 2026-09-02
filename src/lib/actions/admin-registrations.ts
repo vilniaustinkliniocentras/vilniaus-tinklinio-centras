@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { isAdminAuthenticated } from "@/lib/actions/admin-auth";
+import { isAdminAuthenticated } from "@/lib/admin/auth";
 import { adminUpdateRegistrationStatus } from "@/lib/supabase/admin";
 import {
   isRegistrationStatus,
