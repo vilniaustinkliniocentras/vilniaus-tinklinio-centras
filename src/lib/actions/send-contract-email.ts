@@ -6,6 +6,8 @@ import { fetchRegistrationById, markContractSent } from "@/lib/admin/registratio
 import { generateContractPdf } from "@/lib/contracts/generate-contract-pdf";
 import { sendContractEmailWithPdf } from "@/lib/email/contract-email";
 import { resolveContractRecipientEmail } from "@/lib/email/contract-email-override";
+import { generateSignedContractUploadToken } from "@/lib/storage/signed-contract-upload-token";
+import { buildSignedContractUploadUrl } from "@/lib/storage/signed-contract-upload-url";
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -41,6 +43,12 @@ export async function sendContractEmail(
   }
 
   try {
+    const tokenResult = await generateSignedContractUploadToken(registrationId);
+    if (!tokenResult.success) {
+      return { success: false, message: tokenResult.message };
+    }
+
+    const uploadUrl = buildSignedContractUploadUrl(tokenResult.token);
     const { buffer, filename } = await generateContractPdf(registration);
     const recipientEmail = resolveContractRecipientEmail(registration.parent_email);
 
@@ -50,6 +58,7 @@ export async function sendContractEmail(
       childName: registration.child_name.trim(),
       filename,
       pdfBuffer: buffer,
+      uploadUrl,
     });
 
     const markResult = await markContractSent(registrationId, recipientEmail);

@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { siteConfig } from "@/lib/constants";
+import { SIGNED_CONTRACT_UPLOAD_TOKEN_TTL_DAYS } from "@/lib/storage/signed-contract-upload-token";
 
 const FROM_EMAIL =
   "Vilniaus tinklinio centras <registracija@vilniaustinkliniocentras.lt>";
@@ -55,7 +56,11 @@ function emailLayout(content: string): string {
 </html>`;
 }
 
-function buildContractEmailHtml(parentName: string, childName: string): string {
+function buildContractEmailHtml(
+  parentName: string,
+  childName: string,
+  uploadUrl: string
+): string {
   const content = `
     <p style="margin:0 0 16px;">Sveiki, ${escapeHtml(parentName)},</p>
     <p style="margin:0 0 16px;">džiaugiamės, kad ${escapeHtml(childName)} prisijungia prie Vilniaus tinklinio centro treniruočių.</p>
@@ -66,8 +71,15 @@ function buildContractEmailHtml(parentName: string, childName: string): string {
       <li style="margin-bottom:8px;">Pasirinkti sutartyje esančius sutikimus „Sutinku“ arba „Nesutinku“, jei tai reikalinga prieš pasirašymą.</li>
       <li style="margin-bottom:8px;">Sutartį pasirašyti kvalifikuotu elektroniniu parašu.</li>
       <li style="margin-bottom:8px;">Pasirašymui galite naudoti jums patogią elektroninio pasirašymo platformą.</li>
-      <li style="margin-bottom:8px;">Pasirašytą dokumentą kol kas atsiųsti atsakant į šį el. laišką adresu ${escapeHtml(REPLY_TO_EMAIL)}.</li>
+      <li style="margin-bottom:8px;">Pasirašytą PDF failą įkelti paspaudę žemiau esančią nuorodą.</li>
     </ol>
+    <p style="margin:0 0 12px;font-weight:700;color:#1f2f86;">Pasirašytos sutarties įkėlimas</p>
+    <p style="margin:0 0 12px;">
+      <a href="${escapeHtml(uploadUrl)}" style="color:#1f2f86;text-decoration:underline;word-break:break-all;">${escapeHtml(uploadUrl)}</a>
+    </p>
+    <p style="margin:0 0 16px;color:#4b5563;">
+      Nuoroda galioja ${SIGNED_CONTRACT_UPLOAD_TOKEN_TTL_DAYS} dienų. Po sėkmingo įkėlimo ji nebegalioja.
+    </p>
     <p style="margin:0 0 8px;font-weight:700;color:#1f2f86;">Jeigu turite klausimų, susisiekite:</p>
     <p style="margin:0 0 16px;">
       Vilniaus tinklinio centras<br />
@@ -88,6 +100,7 @@ export async function sendContractEmailWithPdf(options: {
   childName: string;
   filename: string;
   pdfBuffer: Buffer;
+  uploadUrl: string;
 }): Promise<void> {
   const resend = getResendClient();
   if (!resend) {
@@ -99,7 +112,7 @@ export async function sendContractEmailWithPdf(options: {
     to: options.to,
     replyTo: REPLY_TO_EMAIL,
     subject: "Vilniaus tinklinio centras – sutartis pasirašymui",
-    html: buildContractEmailHtml(options.parentName, options.childName),
+    html: buildContractEmailHtml(options.parentName, options.childName, options.uploadUrl),
     attachments: [
       {
         filename: options.filename,

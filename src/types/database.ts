@@ -15,6 +15,10 @@ export interface Registration {
   created_at: string;
   contract_sent_at: string | null;
   contract_sent_to: string | null;
+  signed_contract_path: string | null;
+  signed_contract_uploaded_at: string | null;
+  signed_contract_upload_token_hash: string | null;
+  signed_contract_upload_token_created_at: string | null;
 }
 
 export interface RegistrationInsert {

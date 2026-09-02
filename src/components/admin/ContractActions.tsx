@@ -1,3 +1,4 @@
+import { CreateUploadLinkButton } from "@/components/admin/CreateUploadLinkButton";
 import { PrepareContractButton } from "@/components/admin/PrepareContractButton";
 import { ContractSentStatus, SendContractButton } from "@/components/admin/SendContractButton";
 import type { ContractTestModeConfig } from "@/lib/email/contract-email-override";
@@ -20,7 +21,8 @@ export function ContractActions({
   contractSentAt,
   contractTestMode,
   onContractSent,
-}: ContractActionsProps) {  return (
+}: ContractActionsProps) {
+  return (
     <div className="min-w-[170px]">
       <div className="flex flex-col gap-2">
         <PrepareContractButton registrationId={registrationId} />
@@ -33,6 +35,7 @@ export function ContractActions({
           contractTestMode={contractTestMode}
           onSent={onContractSent}
         />
+        <CreateUploadLinkButton registrationId={registrationId} />
       </div>
       <ContractSentStatus contractSentAt={contractSentAt} />
     </div>

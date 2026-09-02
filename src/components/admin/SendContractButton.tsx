@@ -36,7 +36,8 @@ export function SendContractButton({
   onSent,
 }: SendContractButtonProps) {
   const isTestMode = contractTestMode.enabled;
-  const testRecipient = contractTestMode.recipient;  const router = useRouter();
+  const testRecipient = contractTestMode.recipient;
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
