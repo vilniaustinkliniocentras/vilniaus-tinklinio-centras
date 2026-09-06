@@ -155,7 +155,8 @@ function buildRequisitesBlocks(fields: ContractFields): ContractBlock[] {
       side: "right",
       text: "Direktorė Asta Jansonienė",
     },
-    { type: "spacer", height: 14 },
+    { type: "spacer", height: 4 },
+    { type: "director-signature-zone" },
     {
       type: "signature-row",
       left: "___________________________",
@@ -164,7 +165,7 @@ function buildRequisitesBlocks(fields: ContractFields): ContractBlock[] {
     {
       type: "signature-row",
       left: "(parašas)",
-      right: "(parašas)",
+      right: "",
     },
   ];
 }

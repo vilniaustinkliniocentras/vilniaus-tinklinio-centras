@@ -5,6 +5,7 @@ import {
 } from "@/lib/contracts/contract-fields";
 import { registerContractFonts } from "@/lib/contracts/register-contract-fonts";
 import { VtcTrainingContract } from "@/lib/contracts/vtc-training-contract";
+import { getContractSignatureAssetsFromStorage } from "@/lib/storage/contract-assets";
 import type { Registration } from "@/types/database";
 
 export async function generateContractPdf(registration: Registration): Promise<{
@@ -14,7 +15,13 @@ export async function generateContractPdf(registration: Registration): Promise<{
   registerContractFonts();
 
   const fields = mapRegistrationToContractFields(registration, new Date());
-  const element = <VtcTrainingContract fields={fields} />;
+  const directorSignatureAssets = await getContractSignatureAssetsFromStorage();
+  const element = (
+    <VtcTrainingContract
+      fields={fields}
+      directorSignatureAssets={directorSignatureAssets}
+    />
+  );
   const buffer = Buffer.from(await renderToBuffer(element));
 
   return {

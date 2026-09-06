@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "@react-pdf/renderer";
+import { Image, StyleSheet, Text, View } from "@react-pdf/renderer";
 import type { ContractBlock } from "@/lib/contracts/contract-document-types";
 
 export const contractStyles = StyleSheet.create({
@@ -96,13 +96,40 @@ export const contractStyles = StyleSheet.create({
     fontSize: 9,
     textAlign: "center",
   },
+  directorSignatureZone: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    height: 48,
+    marginTop: 2,
+    marginBottom: 4,
+    gap: 10,
+  },
+  directorSignatureImage: {
+    width: 64,
+    height: 45,
+    objectFit: "contain",
+  },
+  directorStampImage: {
+    width: 47,
+    height: 47,
+    objectFit: "contain",
+  },
 });
+
+export interface DirectorSignatureAssets {
+  signatureSrc: string;
+  stampSrc: string;
+}
 
 function Spacer({ height }: { height: number }) {
   return <View style={{ height }} />;
 }
 
-function renderBlock(block: ContractBlock, index: number) {
+function renderBlock(
+  block: ContractBlock,
+  index: number,
+  directorSignatureAssets?: DirectorSignatureAssets
+) {
   switch (block.type) {
     case "title":
       return (
@@ -201,6 +228,28 @@ function renderBlock(block: ContractBlock, index: number) {
           </View>
         </View>
       );
+    case "director-signature-zone":
+      return (
+        <View key={index} style={contractStyles.columnsRow}>
+          <View style={contractStyles.columnLeft} />
+          <View style={contractStyles.columnRight}>
+            {directorSignatureAssets ? (
+              <View style={contractStyles.directorSignatureZone}>
+                {/* eslint-disable-next-line jsx-a11y/alt-text -- PDF decorative signature image */}
+                <Image
+                  src={directorSignatureAssets.signatureSrc}
+                  style={contractStyles.directorSignatureImage}
+                />
+                {/* eslint-disable-next-line jsx-a11y/alt-text -- PDF decorative stamp image */}
+                <Image
+                  src={directorSignatureAssets.stampSrc}
+                  style={contractStyles.directorStampImage}
+                />
+              </View>
+            ) : null}
+          </View>
+        </View>
+      );
     case "signature-row":
       return (
         <View key={index} style={contractStyles.columnsRow}>
@@ -214,9 +263,9 @@ function renderBlock(block: ContractBlock, index: number) {
           <View style={contractStyles.columnRight}>
             {block.right.startsWith("_") ? (
               <Text style={contractStyles.signatureLine}> </Text>
-            ) : (
+            ) : block.right ? (
               <Text style={contractStyles.signatureHint}>{block.right}</Text>
-            )}
+            ) : null}
           </View>
         </View>
       );
@@ -225,6 +274,18 @@ function renderBlock(block: ContractBlock, index: number) {
   }
 }
 
-export function ContractBlocks({ blocks }: { blocks: ContractBlock[] }) {
-  return <>{blocks.map((block, index) => renderBlock(block, index))}</>;
+export function ContractBlocks({
+  blocks,
+  directorSignatureAssets,
+}: {
+  blocks: ContractBlock[];
+  directorSignatureAssets?: DirectorSignatureAssets;
+}) {
+  return (
+    <>
+      {blocks.map((block, index) =>
+        renderBlock(block, index, directorSignatureAssets)
+      )}
+    </>
+  );
 }

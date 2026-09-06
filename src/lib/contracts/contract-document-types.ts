@@ -11,4 +11,5 @@ export type ContractBlock =
   | { type: "columns-header"; left: string; right: string }
   | { type: "columns-row"; left: string; right: string; leftHint?: string; rightHint?: string }
   | { type: "columns-single"; side: "left" | "right"; text: string }
+  | { type: "director-signature-zone" }
   | { type: "signature-row"; left: string; right: string };

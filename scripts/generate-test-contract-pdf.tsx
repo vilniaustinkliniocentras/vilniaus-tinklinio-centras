@@ -5,6 +5,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { mapRegistrationToContractFields } from "../src/lib/contracts/contract-fields";
 import { registerContractFonts } from "../src/lib/contracts/register-contract-fonts";
 import { VtcTrainingContract } from "../src/lib/contracts/vtc-training-contract";
+import { getContractSignatureAssetsFromStorage } from "../src/lib/storage/contract-assets";
 import type { Registration } from "../src/types/database";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -38,7 +39,13 @@ registerContractFonts();
 
 async function main() {
   const fields = mapRegistrationToContractFields(sampleRegistration, new Date("2026-09-02"));
-  const element = <VtcTrainingContract fields={fields} />;
+  const directorSignatureAssets = await getContractSignatureAssetsFromStorage();
+  const element = (
+    <VtcTrainingContract
+      fields={fields}
+      directorSignatureAssets={directorSignatureAssets}
+    />
+  );
   const buffer = await renderToBuffer(element);
 
   await fs.promises.writeFile(outputPath, buffer);
