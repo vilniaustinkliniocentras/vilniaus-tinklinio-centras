@@ -17,6 +17,9 @@
     "react-dom": "^19.0.0",
     "resend": "^6.19.0"
   },
+  "overrides": {
+    "pdfkit": "0.20.2"
+  },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
     "@tailwindcss/postcss": "^4.0.17",
