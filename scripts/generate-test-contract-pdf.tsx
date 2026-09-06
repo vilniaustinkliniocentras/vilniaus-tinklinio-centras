@@ -26,6 +26,12 @@ const sampleRegistration: Registration = {
   privacy_consent: true,
   status: "new",
   created_at: "2026-01-01T00:00:00.000Z",
+  contract_sent_at: null,
+  contract_sent_to: null,
+  signed_contract_path: null,
+  signed_contract_uploaded_at: null,
+  signed_contract_upload_token_hash: null,
+  signed_contract_upload_token_created_at: null,
 };
 
 registerContractFonts();
