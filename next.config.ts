@@ -8,7 +8,6 @@ const contractPdfAssets = [
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  serverExternalPackages: ["@react-pdf/renderer"],
   outputFileTracingIncludes: {
     "/api/admin/registrations/[id]/contract": contractPdfAssets,
     "/admin/registracijos": contractPdfAssets,
