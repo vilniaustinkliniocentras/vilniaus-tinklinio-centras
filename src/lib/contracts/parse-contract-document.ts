@@ -1,6 +1,5 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import type { ContractBlock } from "@/lib/contracts/contract-document-types";
+import { readContractHtmlAsset } from "@/lib/contracts/contract-asset-paths";
 import type { ContractFields } from "@/lib/contracts/contract-fields";
 
 let cachedHtml: string | null = null;
@@ -17,8 +16,7 @@ function loadContractHtml(): string {
     return cachedHtml;
   }
 
-  const htmlPath = join(process.cwd(), "docs/extracted-contract-html.html");
-  cachedHtml = readFileSync(htmlPath, "utf8");
+  cachedHtml = readContractHtmlAsset();
   return cachedHtml;
 }
 

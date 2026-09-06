@@ -1,5 +1,5 @@
-import { join } from "node:path";
 import { Font } from "@react-pdf/renderer";
+import { getContractFontAssetPaths } from "@/lib/contracts/contract-asset-paths";
 
 let fontsRegistered = false;
 
@@ -8,8 +8,7 @@ export function registerContractFonts(): void {
     return;
   }
 
-  const regular = join(process.cwd(), "public/fonts/NotoSans-Regular.ttf");
-  const bold = join(process.cwd(), "public/fonts/NotoSans-Bold.ttf");
+  const { regular, bold } = getContractFontAssetPaths();
 
   Font.register({
     family: "NotoSans",
