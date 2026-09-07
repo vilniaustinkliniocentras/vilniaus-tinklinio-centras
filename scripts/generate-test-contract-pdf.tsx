@@ -26,6 +26,7 @@ const sampleRegistration: Registration = {
   additional_comments: null,
   privacy_consent: true,
   status: "new",
+  is_waitlist: false,
   created_at: "2026-01-01T00:00:00.000Z",
   contract_sent_at: null,
   contract_sent_to: null,

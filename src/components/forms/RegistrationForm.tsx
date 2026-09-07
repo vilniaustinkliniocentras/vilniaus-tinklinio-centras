@@ -20,7 +20,10 @@ import {
   formatTrainingGroupOptionLabel,
   formatTrainingGroupScheduleDisplay,
   getTrainingGroupSchedule,
+  isWaitlistTrainingGroup,
   TRAINING_GROUPS,
+  WAITLIST_NOTICE,
+  WAITLIST_REGISTRATION_BUTTON,
 } from "@/lib/constants/training-groups";
 
 const initialFormData: RegistrationFormData = {
@@ -49,6 +52,7 @@ export function RegistrationForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const isSubmittingRef = useRef(false);
+  const isWaitlistRegistration = isWaitlistTrainingGroup(formData.trainingGroup);
 
   function handleChange(
     field: keyof RegistrationFormData,
@@ -287,6 +291,14 @@ export function RegistrationForm() {
               )}
             </p>
           )}
+          {isWaitlistRegistration && (
+            <p
+              className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold leading-snug text-amber-900"
+              role="status"
+            >
+              {WAITLIST_NOTICE}
+            </p>
+          )}
         </div>
       </fieldset>
 
@@ -367,6 +379,8 @@ export function RegistrationForm() {
             </svg>
             Siunčiama...
           </span>
+        ) : isWaitlistRegistration ? (
+          WAITLIST_REGISTRATION_BUTTON
         ) : (
           "Pateikti registraciją"
         )}

@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { AnimateIn } from "@/components/ui/AnimateIn";
-import { HOMEPAGE_TRAINING_GROUPS } from "@/lib/constants/training-groups";
+import {
+  HOMEPAGE_TRAINING_GROUPS,
+  WAITLIST_NOTICE,
+  WAITLIST_REGISTRATION_BUTTON,
+} from "@/lib/constants/training-groups";
 
 export function TrainingGroups() {
   return (
@@ -40,10 +44,29 @@ export function TrainingGroups() {
                   {group.title}
                 </h3>
                 <p className="relative mt-4 leading-relaxed text-gray-500">{group.description}</p>
-                {group.schedule && (
-                  <p className="relative mt-4 break-words text-sm font-medium leading-snug text-vtc-navy">
-                    {group.schedule}
-                  </p>
+                {group.waitlistOnly ? (
+                  <>
+                    {group.schedule && (
+                      <p className="relative mt-4 break-words text-sm font-medium leading-snug text-vtc-navy">
+                        {group.schedule}
+                      </p>
+                    )}
+                    <p className="relative mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm font-semibold leading-snug text-amber-900">
+                      {WAITLIST_NOTICE}
+                    </p>
+                    <Link
+                      href="/registracija"
+                      className="relative mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-full bg-vtc-navy px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-vtc-navy-dark sm:w-auto"
+                    >
+                      {WAITLIST_REGISTRATION_BUTTON}
+                    </Link>
+                  </>
+                ) : (
+                  group.schedule && (
+                    <p className="relative mt-4 break-words text-sm font-medium leading-snug text-vtc-navy">
+                      {group.schedule}
+                    </p>
+                  )
                 )}
               </article>
             </AnimateIn>

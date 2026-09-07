@@ -5,7 +5,13 @@ export interface TrainingGroup {
   age?: string;
   title?: string;
   description?: string;
+  waitlistOnly?: boolean;
 }
+
+export const WAITLIST_NOTICE =
+  "GRUPĖ PILNA – REGISTRACIJA Į LAUKIANČIŲJŲ SĄRAŠĄ";
+
+export const WAITLIST_REGISTRATION_BUTTON = "Registruotis į laukiančiųjų sąrašą";
 
 export const TRAINING_GROUPS: TrainingGroup[] = [
   {
@@ -24,6 +30,7 @@ export const TRAINING_GROUPS: TrainingGroup[] = [
     age: "2012–2014 m.",
     title: "Mergaičių pradedančiųjų / lengvai pažengusiųjų grupė",
     description: "Technikos pagrindai ir komandinio žaidimo įgūdžiai.",
+    waitlistOnly: true,
   },
   {
     value: "2012–2008 m. pažengusiųjų vaikinų grupė",
@@ -64,6 +71,19 @@ export function getTrainingGroupSchedule(trainingGroup: string): string | null {
 
 export function getPreferredTrainingTimes(trainingGroup: string): string | null {
   return getTrainingGroupSchedule(trainingGroup);
+}
+
+export function isWaitlistTrainingGroup(trainingGroup: string): boolean {
+  const group = TRAINING_GROUPS.find((entry) => entry.value === trainingGroup);
+  if (!group?.waitlistOnly) {
+    return false;
+  }
+
+  return group.schedule?.includes("17:00–18:00") ?? false;
+}
+
+export function resolveRegistrationWaitlistFlag(trainingGroup: string): boolean {
+  return isWaitlistTrainingGroup(trainingGroup);
 }
 
 export function formatTrainingGroupScheduleDisplay(schedule: string): string {

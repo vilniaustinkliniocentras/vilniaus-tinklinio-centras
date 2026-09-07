@@ -12,6 +12,7 @@ export interface Registration {
   additional_comments: string | null;
   privacy_consent: boolean;
   status: string;
+  is_waitlist?: boolean;
   created_at: string;
   contract_sent_at: string | null;
   contract_sent_to: string | null;
@@ -33,4 +34,5 @@ export interface RegistrationInsert {
   referral_source: string;
   additional_comments: string | null;
   privacy_consent: boolean;
+  is_waitlist?: boolean;
 }

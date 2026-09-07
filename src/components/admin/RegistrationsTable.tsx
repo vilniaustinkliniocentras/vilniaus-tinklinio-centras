@@ -37,6 +37,14 @@ function displayTrainingGroup(row: Registration): string {
   return row.preferred_training_times ?? "—";
 }
 
+function WaitlistBadge() {
+  return (
+    <span className="mt-1 inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200">
+      Laukiančiųjų sąrašas
+    </span>
+  );
+}
+
 function formatDateTime(dateString: string): string {
   return new Date(dateString).toLocaleString("lt-LT", {
     year: "numeric",
@@ -155,7 +163,8 @@ export function RegistrationsTable({
                 </td>
                 <td className="px-4 py-3 text-gray-700">{row.volleyball_experience}</td>
                 <td className="max-w-[180px] px-4 py-3 text-gray-700">
-                  {displayTrainingGroup(row)}
+                  <div>{displayTrainingGroup(row)}</div>
+                  {row.is_waitlist ? <WaitlistBadge /> : null}
                 </td>
                 <td className="px-4 py-3 text-gray-700">
                   {row.referral_source ?? "—"}
@@ -229,7 +238,10 @@ export function RegistrationsTable({
               </div>
               <div>
                 <dt className="text-gray-400">Grupė</dt>
-                <dd className="text-gray-700">{displayTrainingGroup(row)}</dd>
+                <dd className="text-gray-700">
+                  <div>{displayTrainingGroup(row)}</div>
+                  {row.is_waitlist ? <WaitlistBadge /> : null}
+                </dd>
               </div>
               <div>
                 <dt className="text-gray-400">Kaip sužinojo</dt>

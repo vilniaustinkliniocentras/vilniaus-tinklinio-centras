@@ -1,7 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { adminFetchRegistrations } from "@/lib/supabase/admin";
 import {
   ADMIN_COOKIE,
   ADMIN_COOKIE_VALUE,
@@ -48,23 +48,10 @@ export async function getRegistrations(): Promise<{
     return { data: null, error: "Neturite prieigos." };
   }
 
-  const supabase = createAdminClient();
-  if (!supabase) {
-    return {
-      data: null,
-      error: "Supabase administracijos konfigūracija nebaigta. Patikrinkite SUPABASE_SERVICE_ROLE_KEY.",
-    };
+  const result = await adminFetchRegistrations();
+  if (!result.success) {
+    return { data: null, error: result.message };
   }
 
-  const { data, error } = await supabase
-    .from("registrations")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("Failed to fetch registrations:", error.message);
-    return { data: null, error: "Nepavyko gauti registracijų." };
-  }
-
-  return { data: data as Registration[], error: null };
+  return { data: result.data, error: null };
 }

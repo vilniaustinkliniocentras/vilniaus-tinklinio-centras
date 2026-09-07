@@ -1,4 +1,5 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import type { Registration } from "@/types/database";
 
 function getAdminCredentials() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -85,4 +86,65 @@ export async function adminUpdateRegistrationStatus(
   }
 
   return { success: true, status: rows[0].status };
+}
+
+function normalizeRegistration(row: Registration): Registration {
+  return {
+    ...row,
+    is_waitlist: row.is_waitlist === true,
+  };
+}
+
+/**
+ * Server-only SELECT via Supabase REST API using the service role key.
+ * Uses fetch directly to avoid local JWT clock-skew validation in supabase-js.
+ */
+export async function adminFetchRegistrations(): Promise<
+  { success: true; data: Registration[] } | { success: false; message: string }
+> {
+  const credentials = getAdminCredentials();
+  if (!credentials) {
+    return {
+      success: false,
+      message: "Supabase administracijos konfigūracija nebaigta.",
+    };
+  }
+
+  const { supabaseUrl, serviceRoleKey } = credentials;
+
+  const response = await fetch(
+    `${supabaseUrl}/rest/v1/registrations?select=*&order=created_at.desc`,
+    {
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+        Accept: "application/json",
+      },
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    console.error("Failed to fetch registrations:", response.status, errorBody);
+    return {
+      success: false,
+      message: "Nepavyko gauti registracijų.",
+    };
+  }
+
+  const rows = (await response.json()) as Registration[];
+
+  if (!Array.isArray(rows)) {
+    console.error("Failed to fetch registrations: unexpected response shape");
+    return {
+      success: false,
+      message: "Nepavyko gauti registracijų.",
+    };
+  }
+
+  return {
+    success: true,
+    data: rows.map(normalizeRegistration),
+  };
 }
