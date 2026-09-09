@@ -183,6 +183,8 @@ export function RegistrationsTable({
                     parentName={row.parent_name}
                     parentEmail={row.parent_email}
                     contractSentAt={row.contract_sent_at}
+                    signedContractPath={row.signed_contract_path}
+                    signedContractUploadedAt={row.signed_contract_uploaded_at}
                     contractTestMode={contractTestMode}
                     onContractSent={(sentAt, sentTo) =>
                       onContractSent?.(row.id, sentAt, sentTo)
@@ -271,6 +273,8 @@ export function RegistrationsTable({
                 parentName={row.parent_name}
                 parentEmail={row.parent_email}
                 contractSentAt={row.contract_sent_at}
+                signedContractPath={row.signed_contract_path}
+                signedContractUploadedAt={row.signed_contract_uploaded_at}
                 contractTestMode={contractTestMode}
                 onContractSent={(sentAt, sentTo) =>
                   onContractSent?.(row.id, sentAt, sentTo)

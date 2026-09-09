@@ -36,6 +36,16 @@ export type SignedContractDownloadUrlResult =
   | { success: true; url: string; expiresInSeconds: number }
   | { success: false; message: string };
 
+export function isSignedContractUploaded(registration: {
+  signed_contract_path?: string | null;
+  signed_contract_uploaded_at?: string | null;
+}): boolean {
+  return Boolean(
+    registration.signed_contract_path?.trim() ||
+      registration.signed_contract_uploaded_at
+  );
+}
+
 async function removeSignedContractFile(storagePath: string): Promise<void> {
   const supabase = createAdminClient();
   if (!supabase) {
