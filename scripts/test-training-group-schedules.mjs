@@ -28,11 +28,11 @@ const TRAINING_GROUPS = [
     schedule: "Pirmadieniais ir trečiadieniais 16:00–17:00",
   },
   {
-    value: "2014–2012 m. mergaičių pradedančiųjų / lengvai pažengusiųjų grupė",
+    value: "2012–2014 m. pradedančiųjų mergaičių grupė",
     schedule: "Pirmadieniais ir trečiadieniais 17:00–18:00",
   },
   {
-    value: "2012–2008 m. pažengusiųjų vaikinų grupė",
+    value: "2012–2014 m. lengvai pažengusiųjų mergaičių grupė",
     schedule: "Pirmadieniais ir trečiadieniais 18:00–19:00",
   },
   {
@@ -113,7 +113,7 @@ try {
     }
   }
 
-  console.log("\nAll 5 training group schedule tests passed.");
+  console.log("\nAll training group schedule tests passed.");
 } finally {
   for (const id of insertedIds) {
     await fetch(`${url}/rest/v1/registrations?id=eq.${id}`, {

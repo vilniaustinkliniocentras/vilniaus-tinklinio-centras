@@ -1,10 +1,7 @@
 "use server";
 
 import { sendRegistrationEmails } from "@/lib/email/registration-emails";
-import {
-  getPreferredTrainingTimes,
-  resolveRegistrationWaitlistFlag,
-} from "@/lib/constants/training-groups";
+import { getPreferredTrainingTimes } from "@/lib/constants/training-groups";
 import { createClient } from "@/lib/supabase/server";
 import {
   hasErrors,
@@ -41,7 +38,6 @@ export async function submitRegistration(
 
   const normalizedPhone = data.phone.replace(/\s/g, "");
   const preferredTrainingTimes = getPreferredTrainingTimes(data.trainingGroup);
-  const isWaitlist = resolveRegistrationWaitlistFlag(data.trainingGroup);
 
   const { error } = await supabase.from("registrations").insert({
     parent_name: data.parentName.trim(),
@@ -56,7 +52,7 @@ export async function submitRegistration(
     additional_comments: data.comments.trim() || null,
     privacy_consent: data.privacyConsent,
     status: "new",
-    is_waitlist: isWaitlist,
+    is_waitlist: false,
   });
 
   if (error) {
