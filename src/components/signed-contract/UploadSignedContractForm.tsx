@@ -1,8 +1,20 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { uploadSignedContractByToken } from "@/lib/actions/upload-signed-contract";
-import { SIGNED_CONTRACT_MAX_BYTES } from "@/lib/storage/signed-contract-config";
+import {
+  completeSignedContractUploadByToken,
+  prepareSignedContractUploadByToken,
+} from "@/lib/actions/upload-signed-contract";
+import {
+  SIGNED_CONTRACT_MAX_BYTES,
+  SIGNED_CONTRACT_SERVER_STEP_TIMEOUT_MS,
+} from "@/lib/storage/signed-contract-config";
+import {
+  fileLooksLikePdf,
+  isAbortError,
+  uploadPdfToSignedContractUrl,
+  withClientTimeout,
+} from "@/lib/storage/upload-signed-contract-browser";
 import { Button } from "@/components/ui/Button";
 
 interface UploadSignedContractFormProps {
@@ -10,8 +22,27 @@ interface UploadSignedContractFormProps {
   childName: string;
 }
 
+const UNEXPECTED_UPLOAD_ERROR_MESSAGE =
+  "Nepavyko įkelti pasirašytos sutarties. Bandykite dar kartą.";
+const UPLOAD_TIMEOUT_MESSAGE = "Įkėlimas užtruko per ilgai. Bandykite dar kartą.";
+
 function formatMaxFileSizeMb(): number {
   return Math.round(SIGNED_CONTRACT_MAX_BYTES / (1024 * 1024));
+}
+
+function getErrorMessage(error: unknown): string {
+  if (isAbortError(error)) {
+    return UPLOAD_TIMEOUT_MESSAGE;
+  }
+
+  if (error instanceof Error && error.message.trim()) {
+    const message = error.message;
+    if (/body exceeded|413|too large|payload/i.test(message)) {
+      return `Failas per didelis. Maksimalus dydis: ${formatMaxFileSizeMb()} MB.`;
+    }
+  }
+
+  return UNEXPECTED_UPLOAD_ERROR_MESSAGE;
 }
 
 export function UploadSignedContractForm({
@@ -19,12 +50,13 @@ export function UploadSignedContractForm({
   childName,
 }: UploadSignedContractFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isUploadingRef = useRef(false);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     setError(null);
     setSuccessMessage(null);
@@ -48,13 +80,20 @@ export function UploadSignedContractForm({
       return;
     }
 
+    if (!(await fileLooksLikePdf(file))) {
+      setSelectedFileName(null);
+      setError("Leidžiami tik PDF failai.");
+      event.target.value = "";
+      return;
+    }
+
     setSelectedFileName(file.name);
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (isUploading || successMessage) {
+    if (isUploadingRef.current || isUploading || successMessage) {
       return;
     }
 
@@ -64,26 +103,50 @@ export function UploadSignedContractForm({
       return;
     }
 
+    isUploadingRef.current = true;
     setIsUploading(true);
     setError(null);
     setSuccessMessage(null);
 
-    const formData = new FormData();
-    formData.append("file", file);
+    try {
+      const prepared = await withClientTimeout(
+        prepareSignedContractUploadByToken(token),
+        SIGNED_CONTRACT_SERVER_STEP_TIMEOUT_MS,
+        UPLOAD_TIMEOUT_MESSAGE
+      );
+      if (!prepared.success) {
+        setError(prepared.message);
+        return;
+      }
 
-    const result = await uploadSignedContractByToken(token, formData);
+      const uploaded = await uploadPdfToSignedContractUrl(prepared.signedUrl, file);
+      if (!uploaded.success) {
+        setError(uploaded.message);
+        return;
+      }
 
-    if (result.success) {
-      setSuccessMessage(result.message);
+      const completed = await withClientTimeout(
+        completeSignedContractUploadByToken(token, prepared.path),
+        SIGNED_CONTRACT_SERVER_STEP_TIMEOUT_MS,
+        UPLOAD_TIMEOUT_MESSAGE
+      );
+      if (!completed.success) {
+        setError(completed.message);
+        return;
+      }
+
+      setSuccessMessage(completed.message);
       setSelectedFileName(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
-    } else {
-      setError(result.message);
+    } catch (uploadError) {
+      console.error("Signed contract upload failed:", uploadError);
+      setError(getErrorMessage(uploadError));
+    } finally {
+      isUploadingRef.current = false;
+      setIsUploading(false);
     }
-
-    setIsUploading(false);
   }
 
   return (
@@ -137,6 +200,7 @@ export function UploadSignedContractForm({
         size="lg"
         className="w-full sm:w-auto"
         disabled={isUploading || Boolean(successMessage)}
+        aria-busy={isUploading}
       >
         {isUploading ? "Įkeliama..." : "Įkelti pasirašytą sutartį"}
       </Button>

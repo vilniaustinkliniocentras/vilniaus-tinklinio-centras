@@ -1,59 +1,86 @@
 "use server";
 
-import { uploadSignedContractForRegistration } from "@/lib/storage/signed-contracts";
+import {
+  createSignedContractUploadTarget,
+  finalizeSignedContractUpload,
+} from "@/lib/storage/signed-contracts";
 import {
   fetchSignedContractUploadContextByToken,
   invalidateSignedContractUploadToken,
 } from "@/lib/storage/signed-contract-upload-token";
-import { SIGNED_CONTRACT_MAX_BYTES } from "@/lib/storage/signed-contract-config";
-import { validateSignedContractPdf } from "@/lib/storage/signed-contract-validation";
 
 const INVALID_LINK_MESSAGE = "Nuoroda negalioja.";
+const UNEXPECTED_UPLOAD_ERROR_MESSAGE =
+  "Nepavyko įkelti pasirašytos sutarties. Bandykite dar kartą.";
 
 export type UploadSignedContractByTokenResult =
   | { success: true; message: string }
   | { success: false; message: string };
 
-export async function uploadSignedContractByToken(
-  token: string,
-  formData: FormData
-): Promise<UploadSignedContractByTokenResult> {
-  const context = await fetchSignedContractUploadContextByToken(token);
-  if (!context) {
-    return { success: false, message: INVALID_LINK_MESSAGE };
-  }
+export type PrepareSignedContractUploadResult =
+  | { success: true; path: string; token: string; signedUrl: string }
+  | { success: false; message: string };
 
-  const fileEntry = formData.get("file");
-  if (!(fileEntry instanceof File) || fileEntry.size === 0) {
-    return { success: false, message: "Pasirinkite PDF failą." };
+function toErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
   }
+  return UNEXPECTED_UPLOAD_ERROR_MESSAGE;
+}
 
-  if (fileEntry.size > SIGNED_CONTRACT_MAX_BYTES) {
+export async function prepareSignedContractUploadByToken(
+  token: string
+): Promise<PrepareSignedContractUploadResult> {
+  try {
+    const context = await fetchSignedContractUploadContextByToken(token);
+    if (!context) {
+      return { success: false, message: INVALID_LINK_MESSAGE };
+    }
+
+    const target = await createSignedContractUploadTarget(context.registrationId);
+    if (!target.success) {
+      return { success: false, message: target.message };
+    }
+
     return {
-      success: false,
-      message: `Failas per didelis. Maksimalus dydis: ${Math.round(SIGNED_CONTRACT_MAX_BYTES / (1024 * 1024))} MB.`,
+      success: true,
+      path: target.path,
+      token: target.token,
+      signedUrl: target.signedUrl,
     };
+  } catch (error) {
+    console.error("Failed to prepare signed contract upload:", toErrorMessage(error));
+    return { success: false, message: UNEXPECTED_UPLOAD_ERROR_MESSAGE };
   }
+}
 
-  const fileBuffer = Buffer.from(await fileEntry.arrayBuffer());
-  const validation = validateSignedContractPdf(fileBuffer);
-  if (!validation.valid) {
-    return { success: false, message: validation.message };
+export async function completeSignedContractUploadByToken(
+  token: string,
+  storagePath: string
+): Promise<UploadSignedContractByTokenResult> {
+  try {
+    const context = await fetchSignedContractUploadContextByToken(token);
+    if (!context) {
+      return { success: false, message: INVALID_LINK_MESSAGE };
+    }
+
+    const finalizeResult = await finalizeSignedContractUpload(
+      context.registrationId,
+      storagePath
+    );
+
+    if (!finalizeResult.success) {
+      return { success: false, message: finalizeResult.message };
+    }
+
+    await invalidateSignedContractUploadToken(context.registrationId);
+
+    return {
+      success: true,
+      message: "Pasirašyta sutartis sėkmingai įkelta.",
+    };
+  } catch (error) {
+    console.error("Failed to complete signed contract upload:", toErrorMessage(error));
+    return { success: false, message: UNEXPECTED_UPLOAD_ERROR_MESSAGE };
   }
-
-  const uploadResult = await uploadSignedContractForRegistration(
-    context.registrationId,
-    fileBuffer
-  );
-
-  if (!uploadResult.success) {
-    return { success: false, message: uploadResult.message };
-  }
-
-  await invalidateSignedContractUploadToken(context.registrationId);
-
-  return {
-    success: true,
-    message: "Pasirašyta sutartis sėkmingai įkelta.",
-  };
 }

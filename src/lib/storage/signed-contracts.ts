@@ -2,6 +2,7 @@ import { fetchRegistrationById } from "@/lib/admin/registrations";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   SIGNED_CONTRACT_DOWNLOAD_URL_TTL_SECONDS,
+  SIGNED_CONTRACT_MAX_BYTES,
   SIGNED_CONTRACTS_BUCKET,
 } from "@/lib/storage/signed-contract-config";
 import {
@@ -121,6 +122,153 @@ export async function uploadSignedContractForRegistration(
     path: metadataResult.path,
     uploadedAt: metadataResult.uploadedAt,
   };
+}
+
+export type SignedContractUploadTarget =
+  | {
+      success: true;
+      registrationId: string;
+      path: string;
+      token: string;
+      signedUrl: string;
+    }
+  | { success: false; message: string };
+
+/**
+ * Creates a short-lived Storage signed upload URL so the PDF never travels
+ * through the Next.js/Vercel request body (1 MB Server Action default, 4.5 MB
+ * Vercel limit). Token, private bucket, and admin download stay unchanged.
+ */
+export async function createSignedContractUploadTarget(
+  registrationId: string
+): Promise<SignedContractUploadTarget> {
+  try {
+    if (!UUID_REGEX.test(registrationId)) {
+      return { success: false, message: "Neteisingas registracijos identifikatorius." };
+    }
+
+    const registration = await fetchRegistrationById(registrationId);
+    if (!registration) {
+      return { success: false, message: "Registracija nerasta." };
+    }
+
+    const supabase = createAdminClient();
+    if (!supabase) {
+      return {
+        success: false,
+        message: "Supabase administracijos konfigūracija nebaigta.",
+      };
+    }
+
+    const storagePath = buildSignedContractStoragePath(registrationId);
+    const { data, error } = await supabase.storage
+      .from(SIGNED_CONTRACTS_BUCKET)
+      .createSignedUploadUrl(storagePath, { upsert: false });
+
+    if (error || !data?.signedUrl || !data.token || !data.path) {
+      console.error("Failed to create signed contract upload URL:", error?.message);
+      return {
+        success: false,
+        message: "Nepavyko paruošti pasirašytos sutarties įkėlimo.",
+      };
+    }
+
+    return {
+      success: true,
+      registrationId,
+      path: data.path,
+      token: data.token,
+      signedUrl: data.signedUrl,
+    };
+  } catch (error) {
+    console.error("Failed to create signed contract upload target:", error);
+    return {
+      success: false,
+      message: "Nepavyko paruošti pasirašytos sutarties įkėlimo.",
+    };
+  }
+}
+
+export async function finalizeSignedContractUpload(
+  registrationId: string,
+  storagePath: string
+): Promise<UploadSignedContractResult> {
+  try {
+    if (!UUID_REGEX.test(registrationId)) {
+      return { success: false, message: "Neteisingas registracijos identifikatorius." };
+    }
+
+    if (!isSignedContractStoragePathForRegistration(registrationId, storagePath)) {
+      return { success: false, message: "Neteisingas pasirašytos sutarties kelias." };
+    }
+
+    const registration = await fetchRegistrationById(registrationId);
+    if (!registration) {
+      return { success: false, message: "Registracija nerasta." };
+    }
+
+    const supabase = createAdminClient();
+    if (!supabase) {
+      return {
+        success: false,
+        message: "Supabase administracijos konfigūracija nebaigta.",
+      };
+    }
+
+    const { data: objectInfo, error: infoError } = await supabase.storage
+      .from(SIGNED_CONTRACTS_BUCKET)
+      .info(storagePath);
+
+    if (infoError || !objectInfo) {
+      console.error(
+        "Signed contract object missing after browser upload:",
+        infoError?.message
+      );
+      return {
+        success: false,
+        message: "Nepavyko įkelti pasirašytos sutarties.",
+      };
+    }
+
+    if (typeof objectInfo.size === "number" && objectInfo.size === 0) {
+      await removeSignedContractFile(storagePath);
+      return { success: false, message: "Failas tuščias." };
+    }
+
+    if (typeof objectInfo.size === "number" && objectInfo.size > SIGNED_CONTRACT_MAX_BYTES) {
+      await removeSignedContractFile(storagePath);
+      return {
+        success: false,
+        message: `Failas per didelis. Maksimalus dydis: ${Math.round(SIGNED_CONTRACT_MAX_BYTES / (1024 * 1024))} MB.`,
+      };
+    }
+
+    const metadataResult = await saveSignedContractMetadata(registrationId, storagePath);
+    if (!metadataResult.success) {
+      await removeSignedContractFile(storagePath);
+      return metadataResult;
+    }
+
+    if (
+      registration.signed_contract_path &&
+      registration.signed_contract_path !== storagePath
+    ) {
+      await removeSignedContractFile(registration.signed_contract_path);
+    }
+
+    return {
+      success: true,
+      registrationId,
+      path: metadataResult.path,
+      uploadedAt: metadataResult.uploadedAt,
+    };
+  } catch (error) {
+    console.error("Failed to finalize signed contract upload:", error);
+    return {
+      success: false,
+      message: "Nepavyko įkelti pasirašytos sutarties.",
+    };
+  }
 }
 
 export async function saveSignedContractMetadata(
