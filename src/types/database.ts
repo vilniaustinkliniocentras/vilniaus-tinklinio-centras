@@ -36,3 +36,44 @@ export interface RegistrationInsert {
   privacy_consent: boolean;
   is_waitlist?: boolean;
 }
+
+export interface BankImport {
+  id: string;
+  filename: string;
+  file_hash: string;
+  rows_total: number;
+  rows_imported: number;
+  rows_skipped: number;
+  imported_at: string;
+}
+
+export type BankTransactionStatus =
+  | "unassigned"
+  | "assigned"
+  | "confirmed"
+  | "ignored";
+
+export interface BankTransactionRegistration {
+  id: string;
+  child_name: string;
+  parent_name: string;
+  training_group: string | null;
+}
+
+export interface BankTransaction {
+  id: string;
+  bank_import_id: string;
+  transaction_date: string;
+  amount_cents: number;
+  currency: string;
+  payer_name: string | null;
+  description: string | null;
+  bank_reference: string | null;
+  transaction_hash: string;
+  registration_id: string | null;
+  status: BankTransactionStatus;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  registration: BankTransactionRegistration | null;
+}
