@@ -77,3 +77,74 @@ export interface BankTransaction {
   updated_at: string;
   registration: BankTransactionRegistration | null;
 }
+
+export interface Athlete {
+  id: string;
+  registration_id: string;
+  child_name: string;
+  child_birth_date: string;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Coach {
+  id: string;
+  auth_user_id: string;
+  full_name: string;
+  email: string;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Operational training group row (public.training_groups). Not the public website registration dropdown. */
+export interface DbTrainingGroup {
+  id: string;
+  name: string;
+  active: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CoachGroupAssignment {
+  id: string;
+  coach_id: string;
+  /** FK to public.training_groups (DbTrainingGroup), not the website dropdown. */
+  training_group_id: string;
+  created_at: string;
+}
+
+export interface AthleteGroupMembership {
+  id: string;
+  athlete_id: string;
+  /** FK to public.training_groups (DbTrainingGroup), not the website dropdown. */
+  training_group_id: string;
+  starts_on: string;
+  ends_on: string | null;
+  created_at: string;
+}
+
+export interface TrainingSession {
+  id: string;
+  /** FK to public.training_groups (DbTrainingGroup), not the website dropdown. */
+  training_group_id: string;
+  session_date: string;
+  starts_at: string | null;
+  ends_at: string | null;
+  created_by_coach_id: string | null;
+  created_at: string;
+}
+
+export type AttendanceStatus = "present" | "absent" | "excused";
+
+export interface Attendance {
+  id: string;
+  training_session_id: string;
+  athlete_id: string;
+  status: AttendanceStatus;
+  marked_by_coach_id: string | null;
+  marked_at: string;
+  notes: string | null;
+}
