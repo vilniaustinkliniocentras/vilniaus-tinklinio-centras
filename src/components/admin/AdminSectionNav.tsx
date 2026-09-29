@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const adminSectionLinks = [
   { href: "/admin/registracijos", label: "Registracijos" },
   { href: "/admin/mokejimai", label: "Mokėjimai" },
+  { href: "/admin/grupes", label: "Grupės ir treneriai" },
 ] as const;
 
 export function AdminSectionNav() {

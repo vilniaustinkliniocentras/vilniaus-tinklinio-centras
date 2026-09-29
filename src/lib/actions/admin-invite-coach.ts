@@ -1,13 +1,15 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { inviteCoach, type InviteCoachInput, type InviteCoachResult } from "@/lib/admin/invite-coach";
 
-/**
- * Phase 3 will attach an admin UI to this action.
- * It already requires isAdminAuthenticated() inside inviteCoach.
- */
 export async function inviteCoachAction(
   input: InviteCoachInput
 ): Promise<InviteCoachResult> {
-  return inviteCoach(input);
+  const result = await inviteCoach(input);
+  if (result.success) {
+    revalidatePath("/admin/grupes");
+    revalidatePath("/treneris");
+  }
+  return result;
 }

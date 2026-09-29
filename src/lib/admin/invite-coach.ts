@@ -24,11 +24,10 @@ export type InviteCoachResult =
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function getInviteRedirectTo(): string {
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(
-    /\/$/,
-    ""
-  );
-  return `${siteUrl}/auth/callback?next=/treneris`;
+  const siteUrl = (
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://vilniaustinkliniocentras.lt"
+  ).replace(/\/$/, "");
+  return `${siteUrl}/auth/callback`;
 }
 
 function isAlreadyRegisteredError(message: string): boolean {
