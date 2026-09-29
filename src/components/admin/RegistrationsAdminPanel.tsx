@@ -1,22 +1,26 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Registration } from "@/types/database";
 import {
   REGISTRATION_STATUSES,
   type RegistrationStatus,
 } from "@/lib/constants/registrations";
 import { RegistrationsTable } from "@/components/admin/RegistrationsTable";
 import type { ContractTestModeConfig } from "@/lib/email/contract-email-override";
+import type { AdminGroupOption, Registration, RegistrationAthleteStatus } from "@/types/database";
 
 interface RegistrationsAdminPanelProps {
   registrations: Registration[];
   contractTestMode: ContractTestModeConfig;
+  athleteStatuses: Record<string, RegistrationAthleteStatus>;
+  activeGroups: AdminGroupOption[];
 }
 
 export function RegistrationsAdminPanel({
   registrations,
   contractTestMode,
+  athleteStatuses,
+  activeGroups,
 }: RegistrationsAdminPanelProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<RegistrationStatus | "all">("all");
@@ -119,6 +123,8 @@ export function RegistrationsAdminPanel({
         <RegistrationsTable
           registrations={filtered}
           contractTestMode={contractTestMode}
+          athleteStatuses={athleteStatuses}
+          activeGroups={activeGroups}
           onStatusUpdated={handleStatusUpdated}
           onContractSent={handleContractSent}
         />

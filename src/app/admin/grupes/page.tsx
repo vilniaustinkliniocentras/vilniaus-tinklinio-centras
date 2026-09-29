@@ -59,6 +59,8 @@ export default async function AdminGrupesPage() {
             groups={data.groups}
             coaches={data.coaches}
             assignments={data.assignments}
+            roster={data.roster}
+            rosterError={data.rosterError}
           />
         )}
       </div>

@@ -16,13 +16,15 @@ import { Checkbox } from "@/components/ui/Checkbox";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
-import type { AdminGroupsData } from "@/lib/admin/coaches-groups";
-import type { Coach, CoachGroupAssignment, DbTrainingGroup } from "@/types/database";
+import { AthletesInGroupsSection } from "@/components/admin/AthletesInGroupsSection";
+import type { AdminRosterAthlete, Coach, CoachGroupAssignment, DbTrainingGroup } from "@/types/database";
 
 interface GroupsAdminPanelProps {
   groups: DbTrainingGroup[];
   coaches: Coach[];
   assignments: CoachGroupAssignment[];
+  roster: AdminRosterAthlete[];
+  rosterError: string | null;
 }
 
 function StatusBadge({ active, activeLabel, inactiveLabel }: {
@@ -68,9 +70,16 @@ export function GroupsAdminPanel({
   groups,
   coaches,
   assignments,
+  roster,
+  rosterError,
 }: GroupsAdminPanelProps) {
   return (
     <div className="space-y-6">
+      <AthletesInGroupsSection
+        groups={groups}
+        roster={roster}
+        rosterError={rosterError}
+      />
       <TrainingGroupsSection groups={groups} />
       <CoachesSection coaches={coaches} />
       <AssignmentsSection
@@ -399,7 +408,11 @@ function AssignmentsSection({
   groups,
   coaches,
   assignments,
-}: AdminGroupsData) {
+}: {
+  groups: DbTrainingGroup[];
+  coaches: Coach[];
+  assignments: CoachGroupAssignment[];
+}) {
   const assignedByCoach = useMemo(() => {
     const map = new Map<string, string[]>();
     for (const assignment of assignments) {

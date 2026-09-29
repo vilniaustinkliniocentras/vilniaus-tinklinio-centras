@@ -4,6 +4,7 @@ import { AdminSectionNav } from "@/components/admin/AdminSectionNav";
 import { RegistrationsAdminPanel } from "@/components/admin/RegistrationsAdminPanel";
 
 import { getRegistrations } from "@/lib/actions/admin-auth";
+import { getRegistrationAthleteState } from "@/lib/actions/admin-athletes";
 import { isAdminAuthenticated } from "@/lib/admin/auth";
 import { getContractTestModeConfig } from "@/lib/email/contract-email-override";
 
@@ -51,7 +52,10 @@ export default async function AdminRegistracijosPage() {
 
 
 
-  const { data, error } = await getRegistrations();
+  const [{ data, error }, athleteState] = await Promise.all([
+    getRegistrations(),
+    getRegistrationAthleteState(),
+  ]);
   const contractTestMode = getContractTestModeConfig();
 
   const totalCount = data?.length ?? 0;
@@ -106,6 +110,15 @@ export default async function AdminRegistracijosPage() {
           </div>
         ) : null}
 
+        {athleteState.error ? (
+          <div
+            className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
+            role="status"
+          >
+            {athleteState.error} Lankančiųjų veiksmai laikinai nepasiekiami.
+          </div>
+        ) : null}
+
         {error ? (
 
           <div
@@ -125,6 +138,8 @@ export default async function AdminRegistracijosPage() {
           <RegistrationsAdminPanel
             registrations={data ?? []}
             contractTestMode={contractTestMode}
+            athleteStatuses={athleteState.statuses}
+            activeGroups={athleteState.activeGroups}
           />
 
         )}

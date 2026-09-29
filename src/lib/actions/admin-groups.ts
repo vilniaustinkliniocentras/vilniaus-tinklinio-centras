@@ -13,11 +13,13 @@ import {
   isUuid,
   type AdminGroupsData,
 } from "@/lib/admin/coaches-groups";
+import { adminFetchCurrentRoster } from "@/lib/admin/athletes";
 import { inviteCoach } from "@/lib/admin/invite-coach";
 import type { InviteCoachResult } from "@/lib/admin/invite-coach";
 
 function revalidateGroups(): void {
   revalidatePath("/admin/grupes");
+  revalidatePath("/admin/registracijos");
   revalidatePath("/treneris");
 }
 
@@ -30,12 +32,22 @@ export async function getAdminGroupsData(): Promise<{
     return { data: null, error: "Neturite prieigos." };
   }
 
-  const result = await adminFetchGroupsCoachesAssignments();
+  const [result, rosterResult] = await Promise.all([
+    adminFetchGroupsCoachesAssignments(),
+    adminFetchCurrentRoster(),
+  ]);
   if (!result.success) {
     return { data: null, error: result.message };
   }
 
-  return { data: result.data, error: null };
+  return {
+    data: {
+      ...result.data,
+      roster: rosterResult.success ? rosterResult.roster : [],
+      rosterError: rosterResult.success ? null : rosterResult.message,
+    },
+    error: null,
+  };
 }
 
 export async function createTrainingGroupAction(

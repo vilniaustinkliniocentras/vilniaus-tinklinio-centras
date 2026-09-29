@@ -1,7 +1,12 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { Coach, CoachGroupAssignment, DbTrainingGroup } from "@/types/database";
+import type {
+  AdminRosterAthlete,
+  Coach,
+  CoachGroupAssignment,
+  DbTrainingGroup,
+} from "@/types/database";
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -14,6 +19,8 @@ export type AdminGroupsData = {
   groups: DbTrainingGroup[];
   coaches: Coach[];
   assignments: CoachGroupAssignment[];
+  roster: AdminRosterAthlete[];
+  rosterError: string | null;
 };
 
 function missingClientMessage(): string {
@@ -65,6 +72,8 @@ export async function adminFetchGroupsCoachesAssignments(): Promise<
       groups: (groupsResult.data ?? []) as DbTrainingGroup[],
       coaches: (coachesResult.data ?? []) as Coach[],
       assignments: (assignmentsResult.data ?? []) as CoachGroupAssignment[],
+      roster: [],
+      rosterError: null,
     },
   };
 }

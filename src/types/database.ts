@@ -126,6 +126,33 @@ export interface AthleteGroupMembership {
   created_at: string;
 }
 
+/** Admin-only view of whether a registration is currently attending. */
+export interface RegistrationAthleteStatus {
+  registrationId: string;
+  athleteId: string | null;
+  isCurrentlyAttending: boolean;
+  currentGroupId: string | null;
+  currentGroupName: string | null;
+  membershipStartsOn: string | null;
+}
+
+export interface AdminGroupOption {
+  id: string;
+  name: string;
+}
+
+/** Current operational roster row for /admin/grupes. */
+export interface AdminRosterAthlete {
+  athleteId: string;
+  childName: string;
+  childBirthDate: string;
+  groupId: string;
+  groupName: string;
+  groupActive: boolean;
+  membershipId: string;
+  membershipStartsOn: string;
+}
+
 export interface TrainingSession {
   id: string;
   /** FK to public.training_groups (DbTrainingGroup), not the website dropdown. */
