@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { CoachLogoutButton } from "@/components/coach/CoachLogoutButton";
 import {
   getAssignedTrainingGroups,
@@ -56,6 +57,12 @@ export default async function CoachDashboardPage() {
                   <GroupAthleteList
                     athletes={roster.athletesByGroupId[group.id] ?? []}
                   />
+                  <Link
+                    href={`/treneris/grupe/${group.id}/lankomumas`}
+                    className="mt-3 inline-flex min-h-11 items-center justify-center rounded-lg bg-vtc-blue-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-vtc-blue-800 active:bg-vtc-blue-900"
+                  >
+                    Žymėti lankomumą
+                  </Link>
                 </li>
               ))}
             </ul>
