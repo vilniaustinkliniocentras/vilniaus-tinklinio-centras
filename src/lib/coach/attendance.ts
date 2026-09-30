@@ -11,17 +11,15 @@ import {
 import type {
   CoachAttendanceAthlete,
   CoachAttendanceMark,
-  CoachAttendanceRpcDiagnostic,
 } from "@/lib/coach/attendance-types";
 
-export type { CoachAttendanceAthlete, CoachAttendanceMark, CoachAttendanceRpcDiagnostic };
+export type { CoachAttendanceAthlete, CoachAttendanceMark };
 
 export type CoachAttendanceRoster = {
   sessionId: string | null;
   sessionDate: string;
   trainingGroupId: string;
   athletes: CoachAttendanceAthlete[];
-  diagnostic: CoachAttendanceRpcDiagnostic;
 };
 
 type RpcObject = Record<string, unknown>;
@@ -47,50 +45,6 @@ function asRpcObject(data: unknown): RpcObject | null {
 
 function readString(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
-}
-
-function formatRpcRaw(value: unknown): string {
-  if (value === null || value === undefined) {
-    return "NULL";
-  }
-
-  if (typeof value === "string") {
-    return value;
-  }
-
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return "NULL";
-  }
-}
-
-function buildRpcDiagnostic(
-  rawSessionId: unknown,
-  rawAthletes: unknown
-): CoachAttendanceRpcDiagnostic {
-  const athletes: CoachAttendanceRpcDiagnostic["athletes"] = [];
-
-  if (Array.isArray(rawAthletes)) {
-    for (const item of rawAthletes) {
-      if (!item || typeof item !== "object" || Array.isArray(item)) {
-        continue;
-      }
-
-      const row = item as RpcObject;
-      const parsed = parseAthlete(item);
-      athletes.push({
-        childName: readString(row.child_name) ?? "NULL",
-        rawStatus: formatRpcRaw(row.status),
-        parsedStatus: parsed?.status ?? "NULL",
-      });
-    }
-  }
-
-  return {
-    rawSessionId: formatRpcRaw(rawSessionId),
-    athletes,
-  };
 }
 
 function publicRpcMessage(
@@ -194,7 +148,6 @@ export async function fetchCoachGroupRosterForDate(
   }
 
   const payload = asRpcObject(data);
-  const diagnostic = buildRpcDiagnostic(payload?.session_id, payload?.athletes);
   const athletes = parseAthletes(payload?.athletes);
   const returnedGroupId = readString(payload?.training_group_id);
   const returnedDate = readString(payload?.session_date);
@@ -212,7 +165,6 @@ export async function fetchCoachGroupRosterForDate(
       sessionDate: returnedDate,
       trainingGroupId: returnedGroupId,
       athletes,
-      diagnostic,
     },
   };
 }

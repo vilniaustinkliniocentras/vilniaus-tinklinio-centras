@@ -78,30 +78,6 @@ export default async function CoachAttendancePage({
         </h1>
         <p className="mt-2 text-base text-gray-700">{group.name}</p>
 
-        {rosterResult.success ? (
-          <section className="mt-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-gray-800">
-            <h2 className="font-semibold uppercase tracking-wide text-amber-900">
-              DIAGNOSTIKA
-            </h2>
-            <p className="mt-2 font-mono text-xs sm:text-sm">
-              RPC session_id: {rosterResult.roster.diagnostic.rawSessionId}
-            </p>
-            <ul className="mt-3 space-y-3">
-              {rosterResult.roster.diagnostic.athletes.map((athlete, index) => (
-                <li key={`${athlete.childName}-${index}`}>
-                  <p className="font-medium">{athlete.childName}</p>
-                  <p className="font-mono text-xs sm:text-sm">
-                    raw RPC status: {athlete.rawStatus}
-                  </p>
-                  <p className="font-mono text-xs sm:text-sm">
-                    parsed status: {athlete.parsedStatus}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
-
         <div className="mt-6">
           <AttendanceForm
             key={requestedDate}
