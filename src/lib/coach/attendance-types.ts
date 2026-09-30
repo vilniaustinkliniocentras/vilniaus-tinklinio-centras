@@ -11,3 +11,12 @@ export type CoachAttendanceMark = {
   athleteId: string;
   status: AttendanceStatus;
 };
+
+export type CoachAttendanceRpcDiagnostic = {
+  rawSessionId: string;
+  athletes: Array<{
+    childName: string;
+    rawStatus: string;
+    parsedStatus: string;
+  }>;
+};
