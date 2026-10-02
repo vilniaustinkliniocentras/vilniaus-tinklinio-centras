@@ -3,6 +3,7 @@
 import { useTransition, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Select } from "@/components/ui/Select";
+import { AttendanceViewSwitcher } from "@/components/admin/AttendanceViewSwitcher";
 import { attendanceStatusLabels } from "@/lib/constants/attendance";
 import type { AttendanceStatus } from "@/lib/constants/attendance";
 import { formatIsoDateDisplay } from "@/lib/coach/dates";
@@ -131,6 +132,12 @@ export function AttendanceAdminPanel({
 
   return (
     <div className={`space-y-6 ${isPending ? "opacity-70" : ""}`}>
+      <AttendanceViewSwitcher
+        mode="diena"
+        groupId={selectedGroupId}
+        dailyDate={sessionDate}
+        month={sessionDate.slice(0, 7)}
+      />
       <div className="grid gap-4 rounded-xl bg-white p-5 shadow-sm sm:grid-cols-2 sm:p-6">
         <Select
           id="admin-attendance-group"

@@ -4,7 +4,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { isUuid } from "@/lib/admin/coaches-groups";
 import { isAttendanceStatus } from "@/lib/constants/attendance";
 import type { AttendanceStatus } from "@/lib/constants/attendance";
-import { isAllowedAttendanceDate } from "@/lib/coach/dates";
+import {
+  attendanceMonthBounds,
+  isAllowedAttendanceDate,
+  isAllowedAttendanceMonth,
+  vilniusTodayIsoDate,
+} from "@/lib/coach/dates";
 
 export type AdminAttendanceGroupOption = {
   id: string;
@@ -29,6 +34,30 @@ export type AdminAttendanceView = {
   recorderNames: string[];
   lastMarkedAtIso: string | null;
   athletes: AdminAttendanceAthleteRow[];
+  groupError: string | null;
+  loadError: string | null;
+};
+
+export type AdminMonthlyAthleteRow = {
+  athleteId: string;
+  childName: string;
+  childBirthDate: string | null;
+  presentCount: number;
+  absentCount: number;
+  excusedCount: number;
+  unmarkedCount: number;
+  totalCount: number;
+};
+
+export type AdminMonthlyAttendanceView = {
+  groups: AdminAttendanceGroupOption[];
+  selectedGroupId: string | null;
+  selectedGroupName: string | null;
+  selectedGroupActive: boolean | null;
+  month: string;
+  sessionCount: number;
+  sessionDates: string[];
+  athletes: AdminMonthlyAthleteRow[];
   groupError: string | null;
   loadError: string | null;
 };
@@ -371,6 +400,271 @@ export async function adminLoadAttendanceView(
     sessionExists: Boolean(session?.id),
     recorderNames,
     lastMarkedAtIso,
+    athletes,
+    groupError: null,
+    loadError: null,
+  };
+}
+
+function emptyMonthlyView(
+  month: string,
+  groups: AdminAttendanceGroupOption[] = []
+): AdminMonthlyAttendanceView {
+  return {
+    groups,
+    selectedGroupId: null,
+    selectedGroupName: null,
+    selectedGroupActive: null,
+    month,
+    sessionCount: 0,
+    sessionDates: [],
+    athletes: [],
+    groupError: null,
+    loadError: null,
+  };
+}
+
+export async function adminLoadMonthlyAttendanceView(
+  groupId: string | null,
+  month: string
+): Promise<AdminMonthlyAttendanceView> {
+  const supabase = createAdminClient();
+  if (!supabase) {
+    return {
+      ...emptyMonthlyView(month),
+      loadError: missingClientMessage(),
+    };
+  }
+
+  const groupsResult = await fetchGroups(supabase);
+  if (!groupsResult.success) {
+    return {
+      ...emptyMonthlyView(month),
+      loadError: groupsResult.message,
+    };
+  }
+
+  const groups = groupsResult.groups;
+  const bounds = attendanceMonthBounds(month);
+  const today = vilniusTodayIsoDate();
+
+  if (!bounds || !isAllowedAttendanceMonth(month)) {
+    return {
+      ...emptyMonthlyView(month, groups),
+      loadError: "Negalima peržiūrėti būsimo mėnesio.",
+    };
+  }
+
+  if (!groupId) {
+    return emptyMonthlyView(month, groups);
+  }
+
+  if (!isUuid(groupId)) {
+    return {
+      ...emptyMonthlyView(month, groups),
+      groupError: "Neteisinga grupė.",
+    };
+  }
+
+  const selectedGroup = groups.find((group) => group.id === groupId);
+  if (!selectedGroup) {
+    return {
+      ...emptyMonthlyView(month, groups),
+      groupError: "Grupė nerasta.",
+    };
+  }
+
+  const sessionDateMax = bounds.end <= today ? bounds.end : today;
+
+  const { data: membershipData, error: membershipError } = await supabase
+    .from("athlete_group_memberships")
+    .select("athlete_id, training_group_id, starts_on, ends_on")
+    .eq("training_group_id", groupId)
+    .lte("starts_on", bounds.end)
+    .or(`ends_on.is.null,ends_on.gte.${bounds.start}`);
+
+  if (membershipError) {
+    console.error(
+      "Failed to fetch monthly attendance memberships:",
+      membershipError.message
+    );
+    return {
+      ...emptyMonthlyView(month, groups),
+      selectedGroupId: selectedGroup.id,
+      selectedGroupName: selectedGroup.name,
+      selectedGroupActive: selectedGroup.active,
+      loadError: "Nepavyko gauti to mėnesio sportininkų sąrašo.",
+    };
+  }
+
+  const membershipsByAthlete = new Map<string, MembershipRow[]>();
+  const athleteIds: string[] = [];
+
+  for (const row of (membershipData ?? []) as MembershipRow[]) {
+    if (!row.athlete_id) {
+      continue;
+    }
+
+    const existing = membershipsByAthlete.get(row.athlete_id);
+    if (existing) {
+      existing.push(row);
+      continue;
+    }
+
+    membershipsByAthlete.set(row.athlete_id, [row]);
+    athleteIds.push(row.athlete_id);
+  }
+
+  let athletesById = new Map<string, AthleteRow>();
+
+  if (athleteIds.length > 0) {
+    const { data: athleteData, error: athleteError } = await supabase
+      .from("athletes")
+      .select("id, child_name, child_birth_date")
+      .in("id", athleteIds);
+
+    if (athleteError) {
+      console.error(
+        "Failed to fetch monthly attendance athletes:",
+        athleteError.message
+      );
+      return {
+        ...emptyMonthlyView(month, groups),
+        selectedGroupId: selectedGroup.id,
+        selectedGroupName: selectedGroup.name,
+        selectedGroupActive: selectedGroup.active,
+        loadError: "Nepavyko gauti to mėnesio sportininkų sąrašo.",
+      };
+    }
+
+    athletesById = new Map(
+      ((athleteData ?? []) as AthleteRow[]).map((athlete) => [athlete.id, athlete])
+    );
+  }
+
+  const { data: sessionData, error: sessionError } = await supabase
+    .from("training_sessions")
+    .select("id, training_group_id, session_date")
+    .eq("training_group_id", groupId)
+    .gte("session_date", bounds.start)
+    .lte("session_date", sessionDateMax)
+    .order("session_date", { ascending: true });
+
+  if (sessionError) {
+    console.error("Failed to fetch monthly attendance sessions:", sessionError.message);
+    return {
+      ...emptyMonthlyView(month, groups),
+      selectedGroupId: selectedGroup.id,
+      selectedGroupName: selectedGroup.name,
+      selectedGroupActive: selectedGroup.active,
+      loadError: "Nepavyko gauti lankomumo duomenų.",
+    };
+  }
+
+  const sessions = ((sessionData ?? []) as SessionRow[]).filter(
+    (session) =>
+      Boolean(session.id) &&
+      session.session_date >= bounds.start &&
+      session.session_date <= sessionDateMax
+  );
+
+  const attendanceBySession = new Map<string, Map<string, string>>();
+
+  if (sessions.length > 0) {
+    const sessionIds = sessions.map((session) => session.id);
+    const { data: attendanceData, error: attendanceError } = await supabase
+      .from("attendance")
+      .select("athlete_id, status, training_session_id")
+      .in("training_session_id", sessionIds);
+
+    if (attendanceError) {
+      console.error(
+        "Failed to fetch monthly attendance rows:",
+        attendanceError.message
+      );
+      return {
+        ...emptyMonthlyView(month, groups),
+        selectedGroupId: selectedGroup.id,
+        selectedGroupName: selectedGroup.name,
+        selectedGroupActive: selectedGroup.active,
+        loadError: "Nepavyko gauti lankomumo duomenų.",
+      };
+    }
+
+    for (const row of (attendanceData ?? []) as (AttendanceRow & {
+      training_session_id: string;
+    })[]) {
+      if (!row.training_session_id || !row.athlete_id) {
+        continue;
+      }
+
+      let byAthlete = attendanceBySession.get(row.training_session_id);
+      if (!byAthlete) {
+        byAthlete = new Map();
+        attendanceBySession.set(row.training_session_id, byAthlete);
+      }
+      byAthlete.set(row.athlete_id, row.status);
+    }
+  }
+
+  const athletes: AdminMonthlyAthleteRow[] = [];
+
+  for (const athleteId of athleteIds) {
+    const athlete = athletesById.get(athleteId);
+    if (!athlete) {
+      continue;
+    }
+
+    const memberships = membershipsByAthlete.get(athleteId) ?? [];
+    let presentCount = 0;
+    let absentCount = 0;
+    let excusedCount = 0;
+    let unmarkedCount = 0;
+
+    for (const session of sessions) {
+      const eligible = memberships.some((membership) =>
+        coversSessionDate(membership.starts_on, membership.ends_on, session.session_date)
+      );
+      if (!eligible) {
+        continue;
+      }
+
+      const status = attendanceBySession.get(session.id)?.get(athleteId);
+      if (status === "present") {
+        presentCount += 1;
+      } else if (status === "absent") {
+        absentCount += 1;
+      } else if (status === "excused") {
+        excusedCount += 1;
+      } else if (status === undefined) {
+        unmarkedCount += 1;
+      }
+    }
+
+    athletes.push({
+      athleteId: athlete.id,
+      childName: athlete.child_name,
+      childBirthDate: athlete.child_birth_date,
+      presentCount,
+      absentCount,
+      excusedCount,
+      unmarkedCount,
+      totalCount: presentCount + absentCount + excusedCount + unmarkedCount,
+    });
+  }
+
+  athletes.sort((a, b) => a.childName.localeCompare(b.childName, "lt"));
+
+  const sessionDates = sessions.map((session) => session.session_date);
+
+  return {
+    groups,
+    selectedGroupId: selectedGroup.id,
+    selectedGroupName: selectedGroup.name,
+    selectedGroupActive: selectedGroup.active,
+    month,
+    sessionCount: sessions.length,
+    sessionDates,
     athletes,
     groupError: null,
     loadError: null,

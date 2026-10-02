@@ -1,4 +1,5 @@
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+const ISO_MONTH = /^(\d{4})-(\d{2})$/;
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -45,4 +46,43 @@ export function formatIsoDateDisplay(value: string): string {
   }
 
   return value;
+}
+
+export function vilniusCurrentMonth(): string {
+  return vilniusTodayIsoDate().slice(0, 7);
+}
+
+export function isIsoMonthString(value: string): boolean {
+  const match = ISO_MONTH.exec(value);
+  if (!match) {
+    return false;
+  }
+
+  const month = Number(match[2]);
+  return month >= 1 && month <= 12;
+}
+
+export function isAllowedAttendanceMonth(
+  value: string,
+  currentMonth = vilniusCurrentMonth()
+): boolean {
+  return isIsoMonthString(value) && value <= currentMonth;
+}
+
+export function attendanceMonthBounds(month: string): {
+  start: string;
+  end: string;
+} | null {
+  if (!isIsoMonthString(month)) {
+    return null;
+  }
+
+  const year = Number(month.slice(0, 4));
+  const monthNumber = Number(month.slice(5, 7));
+  const lastDay = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate();
+
+  return {
+    start: `${month}-01`,
+    end: `${month}-${String(lastDay).padStart(2, "0")}`,
+  };
 }
