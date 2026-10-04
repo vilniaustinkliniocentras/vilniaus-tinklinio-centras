@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { COACH_RESET_PASSWORD_PATH } from "@/lib/coach/auth-redirect";
 import { createCoachBrowserClient } from "@/lib/supabase/coach-browser";
 import type { EmailOtpType } from "@supabase/supabase-js";
 
@@ -50,10 +51,14 @@ export function CoachAuthCallback() {
 
       const params = new URLSearchParams(window.location.search);
       const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-      const next = safeNextPath(params.get("next") ?? hashParams.get("next"));
+      const otpType = params.get("type") ?? hashParams.get("type");
+      let next = safeNextPath(params.get("next") ?? hashParams.get("next"));
+      if (otpType === "recovery") {
+        next = COACH_RESET_PASSWORD_PATH;
+      }
       const code = params.get("code");
       const tokenHash = params.get("token_hash");
-      const type = params.get("type");
+      const type = otpType;
       const accessToken = hashParams.get("access_token");
       const refreshToken = hashParams.get("refresh_token");
 
@@ -88,7 +93,7 @@ export function CoachAuthCallback() {
 
       if (errorMessage) {
         setMessage("Nepavyko užbaigti prisijungimo. Bandykite dar kartą.");
-        router.replace("/treneris/prisijungti");
+        router.replace("/treneris/prisijungti?klaida=nuoroda");
         return;
       }
 

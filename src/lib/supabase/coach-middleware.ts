@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 const LOGIN_PATH = "/treneris/prisijungti";
+const RESET_PASSWORD_PATH = "/treneris/atkurti-slaptazodi";
 const DASHBOARD_PATH = "/treneris";
 
 function copyCookies(from: NextResponse, to: NextResponse) {
@@ -60,6 +61,7 @@ export async function updateCoachSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
   const isLogin = pathname === LOGIN_PATH;
+  const isResetPassword = pathname === RESET_PASSWORD_PATH;
   const isCallback = pathname.startsWith("/auth/callback");
 
   if (isCallback) {
@@ -78,8 +80,8 @@ export async function updateCoachSession(request: NextRequest) {
   }
 
   if (pathname === DASHBOARD_PATH || pathname.startsWith(`${DASHBOARD_PATH}/`)) {
-    if (isLogin) {
-      if (activeCoach) {
+    if (isLogin || isResetPassword) {
+      if (isLogin && activeCoach) {
         return redirectWithCookies(request, supabaseResponse, DASHBOARD_PATH);
       }
       return supabaseResponse;

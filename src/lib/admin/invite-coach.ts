@@ -1,5 +1,6 @@
 import "server-only";
 
+import { getCoachAuthCallbackUrl } from "@/lib/coach/auth-redirect";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminAuthenticated } from "@/lib/admin/auth";
 
@@ -24,10 +25,7 @@ export type InviteCoachResult =
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function getInviteRedirectTo(): string {
-  const siteUrl = (
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://vilniaustinkliniocentras.lt"
-  ).replace(/\/$/, "");
-  return `${siteUrl}/auth/callback`;
+  return getCoachAuthCallbackUrl();
 }
 
 function isAlreadyRegisteredError(message: string): boolean {
