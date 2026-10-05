@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { COACH_RESET_PASSWORD_PATH } from "@/lib/coach/auth-redirect";
+import {
+  COACH_RESET_PASSWORD_PATH,
+  COACH_SETUP_PASSWORD_PATH,
+  getSafeCoachAuthNextPath,
+} from "@/lib/coach/auth-redirect";
 import { createCoachBrowserClient } from "@/lib/supabase/coach-browser";
 import type { EmailOtpType } from "@supabase/supabase-js";
 
@@ -14,18 +18,6 @@ const OTP_TYPES: EmailOtpType[] = [
   "email",
   "email_change",
 ];
-
-function safeNextPath(value: string | null): string {
-  if (
-    value &&
-    value.startsWith("/treneris") &&
-    !value.startsWith("//") &&
-    !value.includes("\\")
-  ) {
-    return value;
-  }
-  return "/treneris";
-}
 
 function isOtpType(value: string): value is EmailOtpType {
   return OTP_TYPES.includes(value as EmailOtpType);
@@ -52,9 +44,13 @@ export function CoachAuthCallback() {
       const params = new URLSearchParams(window.location.search);
       const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
       const otpType = params.get("type") ?? hashParams.get("type");
-      let next = safeNextPath(params.get("next") ?? hashParams.get("next"));
+      let next = getSafeCoachAuthNextPath(
+        params.get("next") ?? hashParams.get("next")
+      );
       if (otpType === "recovery") {
         next = COACH_RESET_PASSWORD_PATH;
+      } else if (otpType === "invite") {
+        next = COACH_SETUP_PASSWORD_PATH;
       }
       const code = params.get("code");
       const tokenHash = params.get("token_hash");

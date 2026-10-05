@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getCoachAuthCallbackUrl } from "@/lib/coach/auth-redirect";
+import { getInviteRedirectTo } from "@/lib/coach/auth-redirect";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminAuthenticated } from "@/lib/admin/auth";
 
@@ -23,10 +23,6 @@ export type InviteCoachResult =
     };
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function getInviteRedirectTo(): string {
-  return getCoachAuthCallbackUrl();
-}
 
 function isAlreadyRegisteredError(message: string): boolean {
   const normalized = message.toLowerCase();

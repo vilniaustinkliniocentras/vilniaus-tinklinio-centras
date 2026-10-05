@@ -127,3 +127,43 @@ export async function updateCoachPasswordAfterRecovery(
   await supabase.auth.signOut();
   redirect("/treneris/prisijungti?slaptazodis=atnaujintas");
 }
+
+export async function setupCoachInvitePassword(
+  password: string,
+  confirmPassword: string
+): Promise<CoachPasswordUpdateResult> {
+  const validationError = validateCoachPasswordPair(password, confirmPassword);
+  if (validationError) {
+    return { success: false, message: validationError };
+  }
+
+  const supabase = await createCoachServerClient();
+  if (!supabase) {
+    return {
+      success: false,
+      message: "Trenerio zona laikinai nepasiekiama. Bandykite vėliau.",
+    };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      success: false,
+      message: "Kvietimo nuoroda negalioja arba jos galiojimo laikas baigėsi.",
+    };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password });
+
+  if (error) {
+    return {
+      success: false,
+      message: "Nepavyko išsaugoti slaptažodžio. Bandykite dar kartą.",
+    };
+  }
+
+  redirect("/treneris");
+}

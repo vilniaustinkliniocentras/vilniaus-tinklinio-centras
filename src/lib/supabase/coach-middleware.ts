@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const LOGIN_PATH = "/treneris/prisijungti";
 const RESET_PASSWORD_PATH = "/treneris/atkurti-slaptazodi";
+const SETUP_PASSWORD_PATH = "/treneris/sukurti-slaptazodi";
 const DASHBOARD_PATH = "/treneris";
 
 function copyCookies(from: NextResponse, to: NextResponse) {
@@ -62,6 +63,7 @@ export async function updateCoachSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isLogin = pathname === LOGIN_PATH;
   const isResetPassword = pathname === RESET_PASSWORD_PATH;
+  const isSetupPassword = pathname === SETUP_PASSWORD_PATH;
   const isCallback = pathname.startsWith("/auth/callback");
 
   if (isCallback) {
@@ -80,9 +82,12 @@ export async function updateCoachSession(request: NextRequest) {
   }
 
   if (pathname === DASHBOARD_PATH || pathname.startsWith(`${DASHBOARD_PATH}/`)) {
-    if (isLogin || isResetPassword) {
+    if (isLogin || isResetPassword || isSetupPassword) {
       if (isLogin && activeCoach) {
         return redirectWithCookies(request, supabaseResponse, DASHBOARD_PATH);
+      }
+      if (isSetupPassword && !user) {
+        return redirectWithCookies(request, supabaseResponse, LOGIN_PATH);
       }
       return supabaseResponse;
     }
