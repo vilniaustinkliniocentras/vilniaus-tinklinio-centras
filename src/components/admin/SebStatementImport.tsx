@@ -12,20 +12,29 @@ export function SebStatementImport() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
     setIsSubmitting(true);
     setError(null);
     setSummary(null);
 
     try {
-      const formData = new FormData(event.currentTarget);
+      const formData = new FormData(form);
       const result = await importSebStatementAction(formData);
       if (result.success) {
         setSummary(result.summary);
-        event.currentTarget.reset();
-      } else {
-        setError(result.message);
+        setError(null);
+        try {
+          form.reset();
+        } catch {
+          // Resetting the file input must not turn a successful import into an error.
+        }
+        return;
       }
+
+      setSummary(null);
+      setError(result.message);
     } catch {
+      setSummary(null);
       setError("Nepavyko importuoti išrašo. Bandykite dar kartą.");
     } finally {
       setIsSubmitting(false);
@@ -65,7 +74,7 @@ export function SebStatementImport() {
         </Button>
       </form>
 
-      {error ? (
+      {error && !summary ? (
         <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
           {error}
         </p>
