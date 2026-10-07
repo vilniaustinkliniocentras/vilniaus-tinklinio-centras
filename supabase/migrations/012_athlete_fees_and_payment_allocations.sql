@@ -26,7 +26,11 @@
 --
 -- Identity: allocations and charges reference public.athletes.id only.
 -- Earliest billing month: 2026-09-01.
--- Rate used for generation: the rate covering the 1st of the billing month.
+-- Fee rates are monthly. valid_from and valid_to (when set) must be the first
+-- day of a month. valid_to is exclusive, so Sep–Oct at 69 EUR then 40 EUR
+-- from November is: [2026-09-01, 2026-11-01) then [2026-11-01, ∞).
+-- A mid-month price change does not split that billing month; the new rate
+-- starts on the next month's 1st. Generation uses the rate covering the 1st.
 -- Membership: any overlapping day in the month => full month (no prorating).
 -- Generation is admin-triggered, idempotent, and never overwrites a charge.
 -- An athlete with no applicable fee rate is skipped (no hidden 69 EUR default
@@ -94,6 +98,10 @@ create table if not exists public.athlete_fee_rates (
 
   constraint athlete_fee_rates_amount_cents_check
     check (amount_cents > 0),
+  constraint athlete_fee_rates_valid_from_month_start_check
+    check (valid_from = date_trunc('month', valid_from)::date),
+  constraint athlete_fee_rates_valid_to_month_start_check
+    check (valid_to is null or valid_to = date_trunc('month', valid_to)::date),
   constraint athlete_fee_rates_dates_check
     check (valid_to is null or valid_to > valid_from),
   constraint athlete_fee_rates_no_overlap
@@ -110,10 +118,10 @@ comment on column public.athlete_fee_rates.amount_cents is
   'Monthly tariff in cents while this period applies. There is no database default of 69 EUR.';
 
 comment on column public.athlete_fee_rates.valid_from is
-  'Inclusive start. Generation uses the rate covering the 1st of the billing month; a mid-month valid_from applies from the next month.';
+  'Inclusive start; must be the first day of a month. Generation uses the rate covering the 1st of the billing month.';
 
 comment on column public.athlete_fee_rates.valid_to is
-  'Exclusive end. NULL = current open period.';
+  'Exclusive end; must be the first day of a month when set. NULL = current open period. Example: valid_to = 2026-11-01 means the rate applies through October.';
 
 create unique index if not exists athlete_fee_rates_one_current_idx
   on public.athlete_fee_rates (athlete_id)
@@ -549,6 +557,12 @@ begin
     raise exception 'Tarifas turi būti teigiamas.' using errcode = '22023';
   end if;
 
+  if p_valid_from <> date_trunc('month', p_valid_from)::date then
+    raise exception
+      'Tarifo data turi būti mėnesio pirma diena.'
+      using errcode = '22023';
+  end if;
+
   perform pg_advisory_xact_lock(512049, hashtext(p_athlete_id::text));
 
   select exists(select 1 from public.athletes as a where a.id = p_athlete_id)
@@ -615,7 +629,7 @@ end;
 $$;
 
 comment on function public.admin_set_athlete_fee_rate(uuid, integer, date, text) is
-  'Admin/service-role only. Close the current open rate at p_valid_from and insert a new open rate. Does not rewrite existing monthly charges. No database default of 69 EUR.';
+  'Admin/service-role only. Close the current open rate at p_valid_from and insert a new open rate. p_valid_from must be the first day of a month (rejected otherwise). valid_to is exclusive. Does not rewrite existing monthly charges. No database default of 69 EUR.';
 
 create or replace function public.admin_correct_current_athlete_fee_rate(
   p_athlete_id uuid,
