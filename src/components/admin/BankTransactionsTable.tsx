@@ -6,19 +6,12 @@ import {
   setBankTransactionStatus,
   updateBankTransactionNotes,
 } from "@/lib/actions/admin-payments";
-import { BankTransactionMatch } from "@/components/admin/BankTransactionMatch";
-import {
-  BANK_TRANSACTION_STATUSES,
-  bankTransactionStatusBadgeClasses,
-  bankTransactionStatusLabels,
-  type BankTransactionStatus,
-} from "@/lib/constants/bank-transactions";
-import type { BankTransaction, Registration } from "@/types/database";
-
-interface BankTransactionsTableProps {
-  transactions: BankTransaction[];
-  registrations: Registration[];
-}
+import type { BankBillingRow, BillingAthleteOption } from "@/lib/admin/billing-types";
+import { formatEurFromCents } from "@/lib/admin/money";
+import { suggestAthletesForTransaction } from "@/lib/admin/payment-suggestions";
+import { NewAllocationForm } from "@/components/admin/NewAllocationForm";
+import { PaymentAllocationEditor } from "@/components/admin/PaymentAllocationEditor";
+import { billingInputClass, billingLinkButtonClass } from "@/components/admin/billing-styles";
 
 function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleDateString("lt-LT", {
@@ -28,106 +21,12 @@ function formatDate(dateString: string): string {
   });
 }
 
-function formatAmount(amountCents: number, currency: string): string {
-  return (amountCents / 100).toLocaleString("lt-LT", {
-    style: "currency",
-    currency: currency || "EUR",
-  });
-}
-
-function TransactionStatusSelect({
-  transactionId,
-  currentStatus,
-  hasRegistration,
-  onUpdated,
-}: {
-  transactionId: string;
-  currentStatus: string;
-  hasRegistration: boolean;
-  onUpdated: (status: BankTransactionStatus) => void;
-}) {
-  const router = useRouter();
-  const [status, setStatus] = useState(currentStatus);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setStatus(currentStatus);
-  }, [currentStatus]);
-
-  async function handleChange(newStatus: string) {
-    if (newStatus === status || isUpdating) {
-      return;
-    }
-
-    setIsUpdating(true);
-    setError(null);
-
-    try {
-      const result = await setBankTransactionStatus(
-        transactionId,
-        newStatus as BankTransactionStatus
-      );
-
-      if (result.success && result.status) {
-        setStatus(result.status);
-        onUpdated(result.status);
-        router.refresh();
-      } else {
-        setError(result.message);
-      }
-    } catch {
-      setError("Nepavyko atnaujinti būsenos.");
-    } finally {
-      setIsUpdating(false);
-    }
-  }
-
-  const badgeStatus =
-    (status as BankTransactionStatus) in bankTransactionStatusBadgeClasses
-      ? (status as BankTransactionStatus)
-      : "unassigned";
-
-  return (
-    <div className="space-y-1">
-      <select
-        value={status}
-        disabled={isUpdating}
-        onChange={(event) => handleChange(event.target.value)}
-        aria-label="Keisti mokėjimo būseną"
-        className={`w-full min-w-[140px] rounded-lg border-0 py-1.5 pl-2.5 pr-8 text-xs font-medium ring-1 ring-inset focus:ring-2 focus:ring-vtc-navy disabled:opacity-60 ${bankTransactionStatusBadgeClasses[badgeStatus]}`}
-      >
-        {BANK_TRANSACTION_STATUSES.map((option) => (
-          <option
-            key={option.value}
-            value={option.value}
-            disabled={
-              (option.value === "assigned" || option.value === "confirmed") &&
-              !hasRegistration
-            }
-          >
-            {option.label}
-          </option>
-        ))}
-      </select>
-      {isUpdating ? <span className="text-xs text-gray-400">Atnaujinama...</span> : null}
-      {error ? (
-        <span className="text-xs text-red-600" role="alert">
-          {error}
-        </span>
-      ) : null}
-    </div>
-  );
-}
-
 function NotesEditor({
   transactionId,
   currentNotes,
-  onUpdated,
 }: {
   transactionId: string;
   currentNotes: string | null;
-  onUpdated: (notes: string | null) => void;
 }) {
   const router = useRouter();
   const isSavingRef = useRef(false);
@@ -143,15 +42,12 @@ function NotesEditor({
     if (isSavingRef.current) {
       return;
     }
-
     isSavingRef.current = true;
     setIsSaving(true);
     setError(null);
-
     try {
       const result = await updateBankTransactionNotes(transactionId, notes);
       if (result.success) {
-        onUpdated(result.notes ?? null);
         router.refresh();
       } else {
         setError(result.message);
@@ -171,15 +67,15 @@ function NotesEditor({
         onChange={(event) => setNotes(event.target.value)}
         rows={2}
         aria-label="Mokėjimo pastaba"
-        className="w-full min-w-[160px] rounded-lg border border-vtc-gray-200 px-2.5 py-1.5 text-xs text-gray-900 placeholder:text-gray-400 focus:border-vtc-navy focus:ring-2 focus:ring-vtc-navy/10"
+        className={billingInputClass}
       />
       <button
         type="button"
-        onClick={handleSave}
+        onClick={() => void handleSave()}
         disabled={isSaving}
-        className="text-xs font-semibold text-vtc-navy hover:underline disabled:opacity-60"
+        className={billingLinkButtonClass}
       >
-        {isSaving ? "Saugoma..." : "Išsaugoti"}
+        {isSaving ? "Saugoma..." : "Išsaugoti pastabą"}
       </button>
       {error ? (
         <span className="block text-xs text-red-600" role="alert">
@@ -190,29 +86,25 @@ function NotesEditor({
   );
 }
 
-function TransactionActions({
-  transaction,
-  onStatusUpdated,
-}: {
-  transaction: BankTransaction;
-  onStatusUpdated: (status: BankTransactionStatus) => void;
-}) {
+function IgnoreControls({ row }: { row: BankBillingRow }) {
   const router = useRouter();
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hasAllocations = row.allocations.length > 0;
 
-  async function handleStatus(status: BankTransactionStatus) {
+  async function handleStatus(status: "ignored" | "unassigned") {
     if (isUpdating) {
       return;
     }
-
+    if (status === "ignored" && hasAllocations) {
+      setError("Negalima ignoruoti, kol yra priskyrimų. Pirmiausia juos pašalinkite.");
+      return;
+    }
     setIsUpdating(true);
     setError(null);
-
     try {
-      const result = await setBankTransactionStatus(transaction.id, status);
-      if (result.success && result.status) {
-        onStatusUpdated(result.status);
+      const result = await setBankTransactionStatus(row.id, status);
+      if (result.success) {
         router.refresh();
       } else {
         setError(result.message);
@@ -226,40 +118,28 @@ function TransactionActions({
 
   return (
     <div className="space-y-1">
-      <div className="flex flex-col gap-1">
-        {transaction.status !== "confirmed" ? (
-          <button
-            type="button"
-            disabled={isUpdating || !transaction.registration_id}
-            onClick={() => handleStatus("confirmed")}
-            className="text-left text-xs font-semibold text-green-800 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Patvirtinti
-          </button>
-        ) : null}
-        {transaction.status !== "ignored" ? (
-          <button
-            type="button"
-            disabled={isUpdating}
-            onClick={() => handleStatus("ignored")}
-            className="text-left text-xs font-semibold text-gray-600 hover:underline disabled:opacity-60"
-          >
-            Ignoruoti
-          </button>
-        ) : (
-          <button
-            type="button"
-            disabled={isUpdating}
-            onClick={() => handleStatus("unassigned")}
-            className="text-left text-xs font-semibold text-vtc-navy hover:underline disabled:opacity-60"
-          >
-            Grąžinti
-          </button>
-        )}
-      </div>
+      {row.status === "ignored" ? (
+        <button
+          type="button"
+          disabled={isUpdating}
+          onClick={() => void handleStatus("unassigned")}
+          className={billingLinkButtonClass}
+        >
+          Grąžinti iš ignoruojamų
+        </button>
+      ) : (
+        <button
+          type="button"
+          disabled={isUpdating || hasAllocations}
+          onClick={() => void handleStatus("ignored")}
+          className="text-left text-xs font-semibold text-gray-600 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Ignoruoti
+        </button>
+      )}
       {isUpdating ? <span className="text-xs text-gray-400">Atnaujinama...</span> : null}
       {error ? (
-        <span className="text-xs text-red-600" role="alert">
+        <span className="block text-xs text-red-600" role="alert">
           {error}
         </span>
       ) : null}
@@ -267,19 +147,72 @@ function TransactionActions({
   );
 }
 
+function TransactionAllocations({
+  row,
+  athletes,
+  month,
+}: {
+  row: BankBillingRow;
+  athletes: BillingAthleteOption[];
+  month: string;
+}) {
+  const ignored = row.status === "ignored";
+  const suggestions = ignored
+    ? []
+    : suggestAthletesForTransaction(
+        { description: row.description, payerName: row.payerName },
+        athletes
+      );
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs text-gray-600">
+        Originali {formatEurFromCents(row.amountCents)} · priskirta{" "}
+        {formatEurFromCents(row.allocatedCents)} · nepriskirta{" "}
+        {formatEurFromCents(row.unallocatedCents)}
+      </p>
+      {row.allocations.map((allocation) => (
+        <PaymentAllocationEditor
+          key={allocation.id}
+          allocation={allocation}
+          athletes={athletes}
+          defaultMonth={month}
+        />
+      ))}
+      <NewAllocationForm
+        source="bank"
+        sourceId={row.id}
+        athletes={athletes}
+        defaultMonth={month}
+        defaultAmountCents={row.unallocatedCents}
+        suggestions={suggestions}
+        disabled={ignored || row.unallocatedCents <= 0}
+        disabledReason={
+          ignored
+            ? "Ignoruojamos operacijos priskirti negalima."
+            : "Visa suma jau priskirta."
+        }
+      />
+    </div>
+  );
+}
+
 export function BankTransactionsTable({
   transactions,
-  registrations,
-}: BankTransactionsTableProps) {
-  const [rows, setRows] = useState(transactions);
+  athletes,
+  month,
+}: {
+  transactions: BankBillingRow[];
+  athletes: BillingAthleteOption[];
+  month: string;
+}) {
+  const [openId, setOpenId] = useState<string | null>(null);
 
-  useEffect(() => {
-    setRows(transactions);
-  }, [transactions]);
-
-  function patchRow(id: string, patch: Partial<BankTransaction>) {
-    setRows((current) =>
-      current.map((row) => (row.id === id ? { ...row, ...patch } : row))
+  if (transactions.length === 0) {
+    return (
+      <p className="rounded-xl border border-vtc-gray-200 bg-white p-8 text-center text-gray-500">
+        Banko mokėjimų dar nėra. Jie atsiras importavus SEB išrašą.
+      </p>
     );
   }
 
@@ -290,86 +223,56 @@ export function BankTransactionsTable({
           <thead className="border-b border-vtc-gray-200 bg-vtc-gray-50">
             <tr>
               <th className="px-4 py-3 font-semibold text-gray-700">Data</th>
-              <th className="px-4 py-3 font-semibold text-gray-700">Mokėtojas / gavėjas</th>
+              <th className="px-4 py-3 font-semibold text-gray-700">Mokėtojas</th>
               <th className="px-4 py-3 font-semibold text-gray-700">Suma</th>
               <th className="px-4 py-3 font-semibold text-gray-700">Paskirtis</th>
-              <th className="px-4 py-3 font-semibold text-gray-700">Tipas</th>
-              <th className="px-4 py-3 font-semibold text-gray-700">Susiejimas</th>
-              <th className="px-4 py-3 font-semibold text-gray-700">Būsena</th>
+              <th className="px-4 py-3 font-semibold text-gray-700">Priskyrimai</th>
               <th className="px-4 py-3 font-semibold text-gray-700">Pastabos</th>
               <th className="px-4 py-3 font-semibold text-gray-700">Veiksmai</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-vtc-gray-100">
-            {rows.map((row) => (
-              <tr key={row.id} className="hover:bg-vtc-gray-50/50">
+            {transactions.map((row) => (
+              <tr key={row.id} className="align-top hover:bg-vtc-gray-50/50">
                 <td className="whitespace-nowrap px-4 py-3 text-gray-700">
-                  {formatDate(row.transaction_date)}
-                </td>
-                <td className="px-4 py-3 text-gray-700">
-                  <p>{row.payer_name ?? "—"}</p>
-                  {row.payer_account ? (
-                    <p className="mt-0.5 break-all text-xs text-gray-500">{row.payer_account}</p>
+                  {formatDate(row.transactionDate)}
+                  {row.status === "ignored" ? (
+                    <p className="mt-1 text-xs font-medium text-gray-500">Ignoruota</p>
                   ) : null}
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 font-medium text-green-800">
-                  {formatAmount(row.amount_cents, row.currency)}
+                <td className="px-4 py-3 text-gray-700">
+                  <p>{row.payerName ?? "—"}</p>
+                  {row.payerAccount ? (
+                    <p className="mt-0.5 break-all text-xs text-gray-500">{row.payerAccount}</p>
+                  ) : null}
+                  {row.legacyRegistrationHint ? (
+                    <p className="mt-1 text-xs text-gray-400">
+                      Senas hintas: {row.legacyRegistrationHint}
+                    </p>
+                  ) : null}
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 text-gray-800">
+                  <p className="font-medium text-green-800">
+                    {formatEurFromCents(row.amountCents)}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Priskirta {formatEurFromCents(row.allocatedCents)}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Liko {formatEurFromCents(row.unallocatedCents)}
+                  </p>
                 </td>
                 <td className="max-w-[220px] px-4 py-3 text-gray-700">
                   {row.description ?? "—"}
                 </td>
                 <td className="px-4 py-3">
-                  <span className="inline-flex rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-semibold text-green-800 ring-1 ring-inset ring-green-600/20">
-                    Įplauka
-                  </span>
+                  <TransactionAllocations row={row} athletes={athletes} month={month} />
                 </td>
                 <td className="px-4 py-3">
-                  <BankTransactionMatch
-                    transaction={row}
-                    registrations={registrations}
-                    onUpdated={({ registrationId, status, registration }) =>
-                      patchRow(row.id, {
-                        registration_id: registrationId,
-                        status,
-                        registration,
-                      })
-                    }
-                  />
+                  <NotesEditor transactionId={row.id} currentNotes={row.notes} />
                 </td>
                 <td className="px-4 py-3">
-                  <TransactionStatusSelect
-                    transactionId={row.id}
-                    currentStatus={row.status}
-                    hasRegistration={Boolean(row.registration_id)}
-                    onUpdated={(status) =>
-                      patchRow(row.id, {
-                        status,
-                        ...(status === "unassigned"
-                          ? { registration_id: null, registration: null }
-                          : {}),
-                      })
-                    }
-                  />
-                </td>
-                <td className="px-4 py-3">
-                  <NotesEditor
-                    transactionId={row.id}
-                    currentNotes={row.notes}
-                    onUpdated={(notes) => patchRow(row.id, { notes })}
-                  />
-                </td>
-                <td className="px-4 py-3">
-                  <TransactionActions
-                    transaction={row}
-                    onStatusUpdated={(status) =>
-                      patchRow(row.id, {
-                        status,
-                        ...(status === "unassigned"
-                          ? { registration_id: null, registration: null }
-                          : {}),
-                      })
-                    }
-                  />
+                  <IgnoreControls row={row} />
                 </td>
               </tr>
             ))}
@@ -378,7 +281,7 @@ export function BankTransactionsTable({
       </div>
 
       <div className="space-y-4 lg:hidden">
-        {rows.map((row) => (
+        {transactions.map((row) => (
           <article
             key={row.id}
             className="rounded-xl border border-vtc-gray-200 bg-white p-5 shadow-sm"
@@ -386,108 +289,52 @@ export function BankTransactionsTable({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="font-semibold text-green-800">
-                  {formatAmount(row.amount_cents, row.currency)}
+                  {formatEurFromCents(row.amountCents)}
                 </h3>
-                <p className="text-sm text-gray-500">{formatDate(row.transaction_date)}</p>
+                <p className="text-sm text-gray-500">{formatDate(row.transactionDate)}</p>
               </div>
-              <span
-                className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${
-                  bankTransactionStatusBadgeClasses[row.status] ??
-                  bankTransactionStatusBadgeClasses.unassigned
-                }`}
-              >
-                {bankTransactionStatusLabels[row.status] ?? row.status}
-              </span>
+              {row.status === "ignored" ? (
+                <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/20">
+                  Ignoruota
+                </span>
+              ) : null}
             </div>
-
             <dl className="mt-4 space-y-2 text-sm">
               <div>
                 <dt className="text-gray-400">Mokėtojas</dt>
-                <dd className="text-gray-700">{row.payer_name ?? "—"}</dd>
+                <dd className="text-gray-700">{row.payerName ?? "—"}</dd>
               </div>
-              {row.payer_account ? (
+              {row.payerAccount ? (
                 <div>
                   <dt className="text-gray-400">IBAN</dt>
-                  <dd className="break-all text-gray-700">{row.payer_account}</dd>
+                  <dd className="break-all text-gray-700">{row.payerAccount}</dd>
                 </div>
               ) : null}
               <div>
-                <dt className="text-gray-400">Mokėjimo paskirtis</dt>
+                <dt className="text-gray-400">Paskirtis</dt>
                 <dd className="text-gray-700">{row.description ?? "—"}</dd>
               </div>
               <div>
-                <dt className="text-gray-400">Tipas</dt>
-                <dd>
-                  <span className="inline-flex rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-semibold text-green-800 ring-1 ring-inset ring-green-600/20">
-                    Įplauka
-                  </span>
+                <dt className="text-gray-400">Priskirta / liko</dt>
+                <dd className="text-gray-700">
+                  {formatEurFromCents(row.allocatedCents)} / {formatEurFromCents(row.unallocatedCents)}
                 </dd>
               </div>
             </dl>
-
-            <div className="mt-4 border-t border-vtc-gray-100 pt-4">
-              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400">
-                Susiejimas
-              </p>
-              <BankTransactionMatch
-                transaction={row}
-                registrations={registrations}
-                onUpdated={({ registrationId, status, registration }) =>
-                  patchRow(row.id, {
-                    registration_id: registrationId,
-                    status,
-                    registration,
-                  })
-                }
-              />
-            </div>
-
-            <div className="mt-4 border-t border-vtc-gray-100 pt-4">
-              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400">
-                Būsena
-              </p>
-              <TransactionStatusSelect
-                transactionId={row.id}
-                currentStatus={row.status}
-                hasRegistration={Boolean(row.registration_id)}
-                onUpdated={(status) =>
-                  patchRow(row.id, {
-                    status,
-                    ...(status === "unassigned"
-                      ? { registration_id: null, registration: null }
-                      : {}),
-                  })
-                }
-              />
-            </div>
-
-            <div className="mt-4 border-t border-vtc-gray-100 pt-4">
-              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400">
-                Pastabos
-              </p>
-              <NotesEditor
-                transactionId={row.id}
-                currentNotes={row.notes}
-                onUpdated={(notes) => patchRow(row.id, { notes })}
-              />
-            </div>
-
-            <div className="mt-4 border-t border-vtc-gray-100 pt-4">
-              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400">
-                Veiksmai
-              </p>
-              <TransactionActions
-                transaction={row}
-                onStatusUpdated={(status) =>
-                  patchRow(row.id, {
-                    status,
-                    ...(status === "unassigned"
-                      ? { registration_id: null, registration: null }
-                      : {}),
-                  })
-                }
-              />
-            </div>
+            <button
+              type="button"
+              className={`${billingLinkButtonClass} mt-3`}
+              onClick={() => setOpenId(openId === row.id ? null : row.id)}
+            >
+              {openId === row.id ? "Uždaryti priskyrimus" : "Priskyrimai"}
+            </button>
+            {openId === row.id ? (
+              <div className="mt-3 space-y-4">
+                <TransactionAllocations row={row} athletes={athletes} month={month} />
+                <NotesEditor transactionId={row.id} currentNotes={row.notes} />
+                <IgnoreControls row={row} />
+              </div>
+            ) : null}
           </article>
         ))}
       </div>

@@ -1,14 +1,35 @@
+import { redirect } from "next/navigation";
 import { AdminLogoutButton } from "@/components/admin/AdminLogoutButton";
 import { AdminLoginForm } from "@/components/admin/AdminLoginForm";
 import { AdminSectionNav } from "@/components/admin/AdminSectionNav";
 import { PaymentsAdminPanel } from "@/components/admin/PaymentsAdminPanel";
-import { getRegistrations } from "@/lib/actions/admin-auth";
-import { getBankImports, getBankTransactions } from "@/lib/actions/admin-payments";
+import { SebStatementImport } from "@/components/admin/SebStatementImport";
 import { isAdminAuthenticated } from "@/lib/admin/auth";
+import { adminLoadPaymentsBilling } from "@/lib/admin/billing";
+import {
+  defaultBillingMonth,
+  formatBillingMonthLt,
+  isAllowedBillingMonth,
+  paymentsMonthUrl,
+} from "@/lib/admin/billing-month";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminMokejimaiPage() {
+function firstSearchValue(value: string | string[] | undefined): string | null {
+  if (typeof value === "string") {
+    return value;
+  }
+  if (Array.isArray(value) && typeof value[0] === "string") {
+    return value[0];
+  }
+  return null;
+}
+
+export default async function AdminMokejimaiPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ menuo?: string | string[] }>;
+}) {
   const authenticated = await isAdminAuthenticated();
 
   if (!authenticated) {
@@ -29,17 +50,16 @@ export default async function AdminMokejimaiPage() {
     );
   }
 
-  const [transactionsResult, importsResult, registrationsResult] = await Promise.all([
-    getBankTransactions(),
-    getBankImports(),
-    getRegistrations(),
-  ]);
+  const query = await searchParams;
+  const requestedMonth = firstSearchValue(query.menuo);
+  if (!requestedMonth || !isAllowedBillingMonth(requestedMonth)) {
+    redirect(paymentsMonthUrl(defaultBillingMonth()));
+  }
 
-  const error =
-    transactionsResult.error ?? importsResult.error ?? registrationsResult.error;
-  const transactions = transactionsResult.data ?? [];
-  const imports = importsResult.data ?? [];
-  const registrations = registrationsResult.data ?? [];
+  const billingResult = await adminLoadPaymentsBilling(requestedMonth);
+  const unallocatedCount = billingResult.success
+    ? billingResult.data.bankRows.filter((row) => row.unallocatedCents > 0).length
+    : 0;
 
   return (
     <div className="section-padding bg-vtc-gray-50">
@@ -48,9 +68,19 @@ export default async function AdminMokejimaiPage() {
           <div>
             <h1 className="font-display text-2xl font-bold text-gray-900">Mokėjimai</h1>
             <p className="mt-1 text-sm text-gray-500">
-              Iš viso:{" "}
-              <span className="font-semibold text-vtc-navy">{transactions.length}</span>{" "}
-              {transactions.length === 1 ? "mokėjimas" : "mokėjimai"}
+              {formatBillingMonthLt(requestedMonth)}
+              {billingResult.success ? (
+                <>
+                  {" · "}
+                  <span className="font-semibold text-vtc-navy">
+                    {billingResult.data.monthRows.length}
+                  </span>{" "}
+                  sportininkai
+                  {unallocatedCount > 0
+                    ? ` · ${unallocatedCount} nepriskirtos banko operacijos`
+                    : ""}
+                </>
+              ) : null}
             </p>
           </div>
           <AdminLogoutButton />
@@ -58,19 +88,18 @@ export default async function AdminMokejimaiPage() {
 
         <AdminSectionNav />
 
-        {error ? (
-          <div
-            className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-800"
-            role="alert"
-          >
-            {error}
-          </div>
+        {billingResult.success ? (
+          <PaymentsAdminPanel data={billingResult.data} />
         ) : (
-          <PaymentsAdminPanel
-            transactions={transactions}
-            imports={imports}
-            registrations={registrations}
-          />
+          <div className="space-y-6">
+            <div
+              className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-800"
+              role="alert"
+            >
+              {billingResult.message}
+            </div>
+            <SebStatementImport />
+          </div>
         )}
       </div>
     </div>

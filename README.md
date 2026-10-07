@@ -53,6 +53,7 @@ npm run dev
 | `/treneriai`     | Treneriai                    |
 | `/registracija`  | Registracijos forma          |
 | `/kontaktai`     | Kontaktai                    |
+| `/admin/mokejimai` | Admin mokėjimai (`?menuo=YYYY-MM`) |
 
 ## Projekto struktūra
 

@@ -51,7 +51,7 @@ export function SebStatementImport() {
       </h2>
       <p className="mt-2 text-sm text-gray-600">
         Importuojamos tik įplaukos (kreditas). Išlaidos paliekamos išraše, bet
-        nepriskiriamos vaikams. Vaikas susiejamas tik ranka.
+        nepriskiriamos vaikams. Sportininkui ir mėnesiui priskiriama tik ranka.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-4 space-y-4">

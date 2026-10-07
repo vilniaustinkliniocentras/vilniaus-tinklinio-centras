@@ -269,6 +269,13 @@ export async function adminUpdateBankTransactionStatus(
       "Failed to update bank transaction status:",
       error?.message ?? "No rows updated"
     );
+    const sqlMessage = error?.message?.trim();
+    if (sqlMessage && /Negalima ignoruoti|priskyrimų/i.test(sqlMessage)) {
+      return {
+        success: false,
+        message: sqlMessage.replace(/^[A-Z0-9]+:\s*/, ""),
+      };
+    }
     return { success: false, message: "Nepavyko atnaujinti būsenos." };
   }
 
