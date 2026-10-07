@@ -6,14 +6,14 @@ export const BANK_TRANSACTION_STATUSES: {
   value: BankTransactionStatus;
   label: string;
 }[] = [
-  { value: "unassigned", label: "Nepriskirtas" },
+  { value: "unassigned", label: "Nepriskirta" },
   { value: "assigned", label: "Priskirtas" },
   { value: "confirmed", label: "Patvirtintas" },
   { value: "ignored", label: "Ignoruotas" },
 ];
 
 export const bankTransactionStatusLabels: Record<BankTransactionStatus, string> = {
-  unassigned: "Nepriskirtas",
+  unassigned: "Nepriskirta",
   assigned: "Priskirtas",
   confirmed: "Patvirtintas",
   ignored: "Ignoruotas",

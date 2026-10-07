@@ -47,6 +47,15 @@ export interface BankImport {
   imported_at: string;
 }
 
+export type SebImportSummary = {
+  imported: number;
+  alreadyImported: number;
+  skipped: number;
+  errors: number;
+  filename: string;
+  alreadyImportedFile: boolean;
+};
+
 export type BankTransactionStatus =
   | "unassigned"
   | "assigned"
@@ -67,6 +76,7 @@ export interface BankTransaction {
   amount_cents: number;
   currency: string;
   payer_name: string | null;
+  payer_account: string | null;
   description: string | null;
   bank_reference: string | null;
   transaction_hash: string;

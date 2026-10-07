@@ -6,15 +6,22 @@ import { fetchRegistrationById } from "@/lib/admin/registrations";
 import {
   adminFetchBankImports,
   adminFetchBankTransactions,
+  adminImportSebStatement,
   adminUpdateBankTransactionNotes,
   adminUpdateBankTransactionRegistration,
   adminUpdateBankTransactionStatus,
 } from "@/lib/admin/bank-imports";
+import type { BankImport, BankTransaction, SebImportSummary } from "@/types/database";
+import {
+  decodeSebStatementBuffer,
+  hashSebStatementBytes,
+  parseSebStatement,
+  SEB_CSV_MAX_BYTES,
+} from "@/lib/admin/seb-csv";
 import {
   isBankTransactionStatus,
   type BankTransactionStatus,
 } from "@/lib/constants/bank-transactions";
-import type { BankImport, BankTransaction } from "@/types/database";
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -57,6 +64,87 @@ export async function getBankImports(): Promise<{
   return { data: result.data, error: null };
 }
 
+function sanitizeUploadFilename(name: string): string {
+  const base = name.replace(/\\/g, "/").split("/").pop() ?? "seb-israsas.csv";
+  const cleaned = base.replace(/[^\w.\- ()ąčęėįšųūžĄČĘĖĮŠŲŪŽ]+/g, "_").trim();
+  const withExtension = cleaned.toLowerCase().endsWith(".csv")
+    ? cleaned
+    : `${cleaned || "seb-israsas"}.csv`;
+  return withExtension.slice(0, 180);
+}
+
+export async function importSebStatementAction(
+  formData: FormData
+): Promise<
+  | { success: true; summary: SebImportSummary }
+  | { success: false; message: string }
+> {
+  const authenticated = await isAdminAuthenticated();
+  if (!authenticated) {
+    return { success: false, message: "Neturite prieigos." };
+  }
+
+  const uploaded = formData.get("statement");
+  if (
+    !uploaded ||
+    typeof uploaded === "string" ||
+    typeof (uploaded as Blob).arrayBuffer !== "function"
+  ) {
+    return { success: false, message: "Pasirinkite SEB CSV failą." };
+  }
+  const file = uploaded as File;
+
+  const filename = sanitizeUploadFilename(file.name);
+  if (!filename.toLowerCase().endsWith(".csv")) {
+    return { success: false, message: "Galima importuoti tik .csv failą." };
+  }
+
+  if (file.size <= 0) {
+    return { success: false, message: "Failas tuščias." };
+  }
+
+  if (file.size > SEB_CSV_MAX_BYTES) {
+    return { success: false, message: "Failas per didelis. Didžiausias dydis – 2 MB." };
+  }
+
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const text = decodeSebStatementBuffer(bytes);
+  if (!text) {
+    return { success: false, message: "Nepavyko perskaityti CSV failo." };
+  }
+
+  const parsed = parseSebStatement(text);
+  if (!parsed.ok) {
+    return { success: false, message: parsed.message };
+  }
+
+  const result = await adminImportSebStatement({
+    filename,
+    fileHash: hashSebStatementBytes(bytes),
+    credits: parsed.credits.map((row) => ({
+      transactionDate: row.transactionDate,
+      amountCents: row.amountCents,
+      currency: row.currency,
+      payerName: row.payerName,
+      payerAccount: row.payerAccount,
+      description: row.description,
+      bankReference: row.bankReference,
+      transactionHash: row.transactionHash,
+      rawFields: row.rawFields,
+    })),
+    skippedDebits: parsed.skippedDebits,
+    rowErrorCount: parsed.rowErrors.length,
+    dataRowCount: parsed.dataRowCount,
+  });
+
+  if (!result.success) {
+    return result;
+  }
+
+  revalidatePayments();
+  return result;
+}
+
 export async function assignBankTransaction(
   transactionId: string,
   registrationId: string
@@ -91,7 +179,7 @@ export async function assignBankTransaction(
   revalidatePayments();
   return {
     success: true,
-    message: "Mokėjimas priskirtas registracijai.",
+    message: "Mokėjimas priskirtas vaikui.",
     status: result.status,
   };
 }
@@ -117,7 +205,7 @@ export async function unassignBankTransaction(
   revalidatePayments();
   return {
     success: true,
-    message: "Mokėjimo priskyrimas nuimtas.",
+    message: "Mokėjimo priskyrimas pašalintas.",
     status: result.status,
   };
 }

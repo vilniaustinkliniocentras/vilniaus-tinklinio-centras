@@ -3,18 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  assignBankTransaction,
   setBankTransactionStatus,
-  unassignBankTransaction,
   updateBankTransactionNotes,
 } from "@/lib/actions/admin-payments";
+import { BankTransactionMatch } from "@/components/admin/BankTransactionMatch";
 import {
   BANK_TRANSACTION_STATUSES,
   bankTransactionStatusBadgeClasses,
   bankTransactionStatusLabels,
   type BankTransactionStatus,
 } from "@/lib/constants/bank-transactions";
-import { formatTrainingGroupDisplay } from "@/lib/constants/training-groups";
 import type { BankTransaction, Registration } from "@/types/database";
 
 interface BankTransactionsTableProps {
@@ -35,17 +33,6 @@ function formatAmount(amountCents: number, currency: string): string {
     style: "currency",
     currency: currency || "EUR",
   });
-}
-
-function registrationLabel(registration: {
-  child_name: string;
-  parent_name: string;
-  training_group?: string | null;
-}): string {
-  const group = registration.training_group
-    ? ` · ${formatTrainingGroupDisplay(registration.training_group)}`
-    : "";
-  return `${registration.child_name} (${registration.parent_name}${group})`;
 }
 
 function TransactionStatusSelect({
@@ -124,106 +111,6 @@ function TransactionStatusSelect({
         ))}
       </select>
       {isUpdating ? <span className="text-xs text-gray-400">Atnaujinama...</span> : null}
-      {error ? (
-        <span className="text-xs text-red-600" role="alert">
-          {error}
-        </span>
-      ) : null}
-    </div>
-  );
-}
-
-function RegistrationSelect({
-  transaction,
-  registrations,
-  onUpdated,
-}: {
-  transaction: BankTransaction;
-  registrations: Registration[];
-  onUpdated: (next: {
-    registrationId: string | null;
-    status: BankTransactionStatus;
-    registration: BankTransaction["registration"];
-  }) => void;
-}) {
-  const router = useRouter();
-  const [value, setValue] = useState(transaction.registration_id ?? "");
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setValue(transaction.registration_id ?? "");
-  }, [transaction.registration_id]);
-
-  async function handleChange(registrationId: string) {
-    if (isUpdating) {
-      return;
-    }
-
-    setIsUpdating(true);
-    setError(null);
-
-    try {
-      if (!registrationId) {
-        const result = await unassignBankTransaction(transaction.id);
-        if (result.success) {
-          setValue("");
-          onUpdated({
-            registrationId: null,
-            status: result.status ?? "unassigned",
-            registration: null,
-          });
-          router.refresh();
-        } else {
-          setError(result.message);
-        }
-        return;
-      }
-
-      const result = await assignBankTransaction(transaction.id, registrationId);
-      if (result.success) {
-        const selected = registrations.find((row) => row.id === registrationId);
-        setValue(registrationId);
-        onUpdated({
-          registrationId,
-          status: result.status ?? "assigned",
-          registration: selected
-            ? {
-                id: selected.id,
-                child_name: selected.child_name,
-                parent_name: selected.parent_name,
-                training_group: selected.training_group,
-              }
-            : transaction.registration,
-        });
-        router.refresh();
-      } else {
-        setError(result.message);
-      }
-    } catch {
-      setError("Nepavyko priskirti registracijos.");
-    } finally {
-      setIsUpdating(false);
-    }
-  }
-
-  return (
-    <div className="space-y-1">
-      <select
-        value={value}
-        disabled={isUpdating}
-        onChange={(event) => handleChange(event.target.value)}
-        aria-label="Priskirti registraciją"
-        className="w-full min-w-[190px] rounded-lg border border-vtc-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-900 focus:border-vtc-navy focus:ring-2 focus:ring-vtc-navy/10 disabled:opacity-60"
-      >
-        <option value="">Nepriskirtas</option>
-        {registrations.map((registration) => (
-          <option key={registration.id} value={registration.id}>
-            {registrationLabel(registration)}
-          </option>
-        ))}
-      </select>
-      {isUpdating ? <span className="text-xs text-gray-400">Saugoma...</span> : null}
       {error ? (
         <span className="text-xs text-red-600" role="alert">
           {error}
@@ -403,10 +290,11 @@ export function BankTransactionsTable({
           <thead className="border-b border-vtc-gray-200 bg-vtc-gray-50">
             <tr>
               <th className="px-4 py-3 font-semibold text-gray-700">Data</th>
-              <th className="px-4 py-3 font-semibold text-gray-700">Mokėtojas</th>
-              <th className="px-4 py-3 font-semibold text-gray-700">Paskirtis</th>
+              <th className="px-4 py-3 font-semibold text-gray-700">Mokėtojas / gavėjas</th>
               <th className="px-4 py-3 font-semibold text-gray-700">Suma</th>
-              <th className="px-4 py-3 font-semibold text-gray-700">Vaikas / registracija</th>
+              <th className="px-4 py-3 font-semibold text-gray-700">Paskirtis</th>
+              <th className="px-4 py-3 font-semibold text-gray-700">Tipas</th>
+              <th className="px-4 py-3 font-semibold text-gray-700">Susiejimas</th>
               <th className="px-4 py-3 font-semibold text-gray-700">Būsena</th>
               <th className="px-4 py-3 font-semibold text-gray-700">Pastabos</th>
               <th className="px-4 py-3 font-semibold text-gray-700">Veiksmai</th>
@@ -418,15 +306,25 @@ export function BankTransactionsTable({
                 <td className="whitespace-nowrap px-4 py-3 text-gray-700">
                   {formatDate(row.transaction_date)}
                 </td>
-                <td className="px-4 py-3 text-gray-700">{row.payer_name ?? "—"}</td>
+                <td className="px-4 py-3 text-gray-700">
+                  <p>{row.payer_name ?? "—"}</p>
+                  {row.payer_account ? (
+                    <p className="mt-0.5 break-all text-xs text-gray-500">{row.payer_account}</p>
+                  ) : null}
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 font-medium text-green-800">
+                  {formatAmount(row.amount_cents, row.currency)}
+                </td>
                 <td className="max-w-[220px] px-4 py-3 text-gray-700">
                   {row.description ?? "—"}
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-900">
-                  {formatAmount(row.amount_cents, row.currency)}
+                <td className="px-4 py-3">
+                  <span className="inline-flex rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-semibold text-green-800 ring-1 ring-inset ring-green-600/20">
+                    Įplauka
+                  </span>
                 </td>
                 <td className="px-4 py-3">
-                  <RegistrationSelect
+                  <BankTransactionMatch
                     transaction={row}
                     registrations={registrations}
                     onUpdated={({ registrationId, status, registration }) =>
@@ -487,7 +385,7 @@ export function BankTransactionsTable({
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h3 className="font-semibold text-gray-900">
+                <h3 className="font-semibold text-green-800">
                   {formatAmount(row.amount_cents, row.currency)}
                 </h3>
                 <p className="text-sm text-gray-500">{formatDate(row.transaction_date)}</p>
@@ -507,17 +405,31 @@ export function BankTransactionsTable({
                 <dt className="text-gray-400">Mokėtojas</dt>
                 <dd className="text-gray-700">{row.payer_name ?? "—"}</dd>
               </div>
+              {row.payer_account ? (
+                <div>
+                  <dt className="text-gray-400">IBAN</dt>
+                  <dd className="break-all text-gray-700">{row.payer_account}</dd>
+                </div>
+              ) : null}
               <div>
-                <dt className="text-gray-400">Paskirtis</dt>
+                <dt className="text-gray-400">Mokėjimo paskirtis</dt>
                 <dd className="text-gray-700">{row.description ?? "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-gray-400">Tipas</dt>
+                <dd>
+                  <span className="inline-flex rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-semibold text-green-800 ring-1 ring-inset ring-green-600/20">
+                    Įplauka
+                  </span>
+                </dd>
               </div>
             </dl>
 
             <div className="mt-4 border-t border-vtc-gray-100 pt-4">
               <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400">
-                Vaikas / registracija
+                Susiejimas
               </p>
-              <RegistrationSelect
+              <BankTransactionMatch
                 transaction={row}
                 registrations={registrations}
                 onUpdated={({ registrationId, status, registration }) =>

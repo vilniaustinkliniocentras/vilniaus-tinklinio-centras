@@ -1,6 +1,7 @@
 "use client";
 
 import { BankTransactionsTable } from "@/components/admin/BankTransactionsTable";
+import { SebStatementImport } from "@/components/admin/SebStatementImport";
 import type { BankImport, BankTransaction, Registration } from "@/types/database";
 
 interface PaymentsAdminPanelProps {
@@ -26,24 +27,7 @@ export function PaymentsAdminPanel({
 }: PaymentsAdminPanelProps) {
   return (
     <div className="space-y-6">
-      <section
-        className="rounded-xl border border-vtc-gray-200 bg-white p-4 shadow-sm sm:p-5"
-        aria-labelledby="seb-import-heading"
-      >
-        <h2 id="seb-import-heading" className="text-base font-semibold text-gray-900">
-          SEB išrašo importas
-        </h2>
-        <p className="mt-2 text-sm text-gray-600">
-          Importas bus aktyvuotas gavus realų SEB CSV išrašo pavyzdį.
-        </p>
-        <button
-          type="button"
-          disabled
-          className="mt-4 inline-flex min-h-10 items-center rounded-lg bg-vtc-gray-100 px-4 py-2 text-sm font-semibold text-gray-400"
-        >
-          Įkelti CSV
-        </button>
-      </section>
+      <SebStatementImport />
 
       {imports.length > 0 ? (
         <section

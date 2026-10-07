@@ -18,6 +18,11 @@ const contractPdfTracingIncludes = [
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "2mb",
+    },
+  },
   outputFileTracingIncludes: {
     "/api/admin/registrations/[id]/contract": contractPdfTracingIncludes,
     "/admin/registracijos": contractPdfTracingIncludes,
