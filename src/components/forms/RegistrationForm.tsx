@@ -20,6 +20,7 @@ import {
   formatTrainingGroupOptionLabel,
   formatTrainingGroupScheduleDisplay,
   getTrainingGroupSchedule,
+  isFullWaitlistTrainingGroup,
   TRAINING_GROUPS,
 } from "@/lib/constants/training-groups";
 
@@ -46,6 +47,7 @@ export function RegistrationForm() {
   const [formData, setFormData] = useState<RegistrationFormData>(initialFormData);
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submittedToWaitlist, setSubmittedToWaitlist] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const isSubmittingRef = useRef(false);
@@ -86,6 +88,7 @@ export function RegistrationForm() {
     const result = await submitRegistration(formData);
 
     if (result.success) {
+      setSubmittedToWaitlist(isFullWaitlistTrainingGroup(formData.trainingGroup));
       setFormData(initialFormData);
       setErrors({});
       setIsSubmitted(true);
@@ -122,12 +125,23 @@ export function RegistrationForm() {
           </svg>
         </div>
         <h2 className="text-xl font-bold text-green-900 sm:text-2xl">
-          Registracija sėkmingai gauta!
+          {submittedToWaitlist
+            ? "Įrašyta į laukiančiųjų sąrašą"
+            : "Registracija sėkmingai gauta!"}
         </h2>
         <p className="mt-3 text-green-800">
-          Dėkojame už registraciją.
-          <br />
-          Per artimiausias 24 valandas su Jumis susisieksime dėl pirmosios treniruotės.
+          {submittedToWaitlist ? (
+            <>
+              Dėkojame už registraciją. Pasirinkta grupė pilna, todėl vaikas įrašytas tik į
+              laukiančiųjų sąrašą. Susisieksime, kai atsiras vieta.
+            </>
+          ) : (
+            <>
+              Dėkojame už registraciją.
+              <br />
+              Per artimiausias 24 valandas su Jumis susisieksime dėl pirmosios treniruotės.
+            </>
+          )}
         </p>
         <div className="mt-6 space-y-3 text-left text-sm text-green-800">
           <div>
@@ -158,6 +172,7 @@ export function RegistrationForm() {
             setFormData(initialFormData);
             setErrors({});
             setSubmitError(null);
+            setSubmittedToWaitlist(false);
             setIsSubmitted(false);
           }}
         >
@@ -287,6 +302,12 @@ export function RegistrationForm() {
               )}
             </p>
           )}
+          {isFullWaitlistTrainingGroup(formData.trainingGroup) && (
+            <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm leading-relaxed text-amber-900 ring-1 ring-inset ring-amber-200">
+              Grupė pilna. Registruotis galima tik į laukiančiųjų sąrašą. Kol vaikas
+              laukia vietos, sutartis nesiunčiama ir mokestis neskaičiuojamas.
+            </p>
+          )}
         </div>
       </fieldset>
 
@@ -367,6 +388,8 @@ export function RegistrationForm() {
             </svg>
             Siunčiama...
           </span>
+        ) : isFullWaitlistTrainingGroup(formData.trainingGroup) ? (
+          "Registruotis į laukiančiųjų sąrašą"
         ) : (
           "Pateikti registraciją"
         )}

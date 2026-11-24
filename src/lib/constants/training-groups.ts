@@ -5,6 +5,8 @@ export interface TrainingGroup {
   age?: string;
   title?: string;
   description?: string;
+  /** Public registration for this group is waitlist-only. */
+  waitlistOnly?: boolean;
 }
 
 export const TRAINING_GROUPS: TrainingGroup[] = [
@@ -40,6 +42,7 @@ export const TRAINING_GROUPS: TrainingGroup[] = [
     age: "2008–2012 m.",
     title: "Lengvai pažengusiųjų merginų grupė",
     description: "Technikos, taktikos ir fizinio pasirengimo tobulinimas.",
+    waitlistOnly: true,
   },
   {
     value: "Nežinau – padėkite parinkti tinkamiausią grupę",
@@ -59,6 +62,15 @@ export const HOMEPAGE_TRAINING_GROUPS = TRAINING_GROUPS.filter(
 
 export function getTrainingGroupSchedule(trainingGroup: string): string | null {
   return TRAINING_GROUPS.find((group) => group.value === trainingGroup)?.schedule ?? null;
+}
+
+export function isFullWaitlistTrainingGroup(
+  trainingGroup: string | null | undefined
+): boolean {
+  if (!trainingGroup) return false;
+  return TRAINING_GROUPS.some(
+    (group) => group.waitlistOnly === true && group.value === trainingGroup
+  );
 }
 
 export function getPreferredTrainingTimes(trainingGroup: string): string | null {
@@ -84,5 +96,6 @@ export function formatTrainingGroupOptionLabel(group: TrainingGroup): string {
     return group.label;
   }
 
-  return `${group.label} (${formatTrainingGroupScheduleDisplay(group.schedule)})`;
+  const scheduleLabel = `${group.label} (${formatTrainingGroupScheduleDisplay(group.schedule)})`;
+  return group.waitlistOnly ? `${scheduleLabel} · Grupė pilna` : scheduleLabel;
 }

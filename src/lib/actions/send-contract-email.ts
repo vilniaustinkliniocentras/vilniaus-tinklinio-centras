@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { isAdminAuthenticated } from "@/lib/admin/auth";
 import { fetchRegistrationById, markContractSent } from "@/lib/admin/registrations";
+import { waitlistBlocksNewContract } from "@/lib/admin/waitlist";
 import { generateContractPdf } from "@/lib/contracts/generate-contract-pdf";
 import { sendContractEmailWithPdf } from "@/lib/email/contract-email";
 import { resolveContractRecipientEmail } from "@/lib/email/contract-email-override";
@@ -33,6 +34,11 @@ export async function sendContractEmail(
   const registration = await fetchRegistrationById(registrationId);
   if (!registration) {
     return { success: false, message: "Registracija nerasta." };
+  }
+
+  const waitlistBlock = await waitlistBlocksNewContract(registrationId);
+  if (waitlistBlock.blocked) {
+    return { success: false, message: waitlistBlock.message };
   }
 
   if (registration.contract_sent_at && !forceResend) {

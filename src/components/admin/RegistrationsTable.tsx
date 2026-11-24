@@ -13,6 +13,10 @@ import { formatTrainingGroupDisplay } from "@/lib/constants/training-groups";
 import type { ContractTestModeConfig } from "@/lib/email/contract-email-override";
 import { ContractActions } from "@/components/admin/ContractActions";
 import { ActivateAthleteControls } from "@/components/admin/ActivateAthleteControls";
+import { PromoteWaitlistControls } from "@/components/admin/PromoteWaitlistControls";
+import { DownloadSignedContractButton } from "@/components/admin/DownloadSignedContractButton";
+import { ContractSentStatus } from "@/components/admin/SendContractButton";
+import { isSignedContractUploaded } from "@/lib/storage/signed-contracts";
 import type { AdminGroupOption, Registration, RegistrationAthleteStatus } from "@/types/database";
 
 interface RegistrationsTableProps {
@@ -45,6 +49,30 @@ function WaitlistBadge() {
     <span className="mt-1 inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200">
       Laukiančiųjų sąrašas
     </span>
+  );
+}
+
+function isWaitlistOnlyRow(
+  row: Registration,
+  athleteStatuses: Record<string, RegistrationAthleteStatus>
+): boolean {
+  return row.is_waitlist === true && athleteStatuses[row.id]?.isCurrentlyAttending !== true;
+}
+
+function WaitlistContractNotice({ row }: { row: Registration }) {
+  const hasSignedContract = isSignedContractUploaded({
+    signed_contract_path: row.signed_contract_path,
+    signed_contract_uploaded_at: row.signed_contract_uploaded_at,
+  });
+
+  return (
+    <div className="min-w-[170px] space-y-2">
+      <p className="text-xs leading-relaxed text-amber-900">
+        Sutartis nesiunčiama, kol vaikas yra laukiančiųjų sąraše.
+      </p>
+      {hasSignedContract ? <DownloadSignedContractButton registrationId={row.id} /> : null}
+      <ContractSentStatus contractSentAt={row.contract_sent_at} />
+    </div>
   );
 }
 
@@ -183,26 +211,37 @@ export function RegistrationsTable({
                   />
                 </td>
                 <td className="min-w-[220px] px-4 py-3">
-                  <ActivateAthleteControls
-                    registrationId={row.id}
-                    status={athleteStatuses[row.id] ?? null}
-                    activeGroups={activeGroups}
-                  />
+                  {isWaitlistOnlyRow(row, athleteStatuses) ? (
+                    <PromoteWaitlistControls
+                      registrationId={row.id}
+                      activeGroups={activeGroups}
+                    />
+                  ) : (
+                    <ActivateAthleteControls
+                      registrationId={row.id}
+                      status={athleteStatuses[row.id] ?? null}
+                      activeGroups={activeGroups}
+                    />
+                  )}
                 </td>
                 <td className="px-4 py-3">
-                  <ContractActions
-                    registrationId={row.id}
-                    childName={row.child_name}
-                    parentName={row.parent_name}
-                    parentEmail={row.parent_email}
-                    contractSentAt={row.contract_sent_at}
-                    signedContractPath={row.signed_contract_path}
-                    signedContractUploadedAt={row.signed_contract_uploaded_at}
-                    contractTestMode={contractTestMode}
-                    onContractSent={(sentAt, sentTo) =>
-                      onContractSent?.(row.id, sentAt, sentTo)
-                    }
-                  />
+                  {isWaitlistOnlyRow(row, athleteStatuses) ? (
+                    <WaitlistContractNotice row={row} />
+                  ) : (
+                    <ContractActions
+                      registrationId={row.id}
+                      childName={row.child_name}
+                      parentName={row.parent_name}
+                      parentEmail={row.parent_email}
+                      contractSentAt={row.contract_sent_at}
+                      signedContractPath={row.signed_contract_path}
+                      signedContractUploadedAt={row.signed_contract_uploaded_at}
+                      contractTestMode={contractTestMode}
+                      onContractSent={(sentAt, sentTo) =>
+                        onContractSent?.(row.id, sentAt, sentTo)
+                      }
+                    />
+                  )}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-gray-500">
                   {formatDateTime(row.created_at)}
@@ -283,27 +322,38 @@ export function RegistrationsTable({
               <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400">
                 Lankymas
               </p>
-              <ActivateAthleteControls
-                registrationId={row.id}
-                status={athleteStatuses[row.id] ?? null}
-                activeGroups={activeGroups}
-              />
+              {isWaitlistOnlyRow(row, athleteStatuses) ? (
+                <PromoteWaitlistControls
+                  registrationId={row.id}
+                  activeGroups={activeGroups}
+                />
+              ) : (
+                <ActivateAthleteControls
+                  registrationId={row.id}
+                  status={athleteStatuses[row.id] ?? null}
+                  activeGroups={activeGroups}
+                />
+              )}
             </div>
 
             <div className="mt-4 border-t border-vtc-gray-100 pt-4">
-              <ContractActions
-                registrationId={row.id}
-                childName={row.child_name}
-                parentName={row.parent_name}
-                parentEmail={row.parent_email}
-                contractSentAt={row.contract_sent_at}
-                signedContractPath={row.signed_contract_path}
-                signedContractUploadedAt={row.signed_contract_uploaded_at}
-                contractTestMode={contractTestMode}
-                onContractSent={(sentAt, sentTo) =>
-                  onContractSent?.(row.id, sentAt, sentTo)
-                }
-              />
+              {isWaitlistOnlyRow(row, athleteStatuses) ? (
+                <WaitlistContractNotice row={row} />
+              ) : (
+                <ContractActions
+                  registrationId={row.id}
+                  childName={row.child_name}
+                  parentName={row.parent_name}
+                  parentEmail={row.parent_email}
+                  contractSentAt={row.contract_sent_at}
+                  signedContractPath={row.signed_contract_path}
+                  signedContractUploadedAt={row.signed_contract_uploaded_at}
+                  contractTestMode={contractTestMode}
+                  onContractSent={(sentAt, sentTo) =>
+                    onContractSent?.(row.id, sentAt, sentTo)
+                  }
+                />
+              )}
             </div>
           </article>
         ))}

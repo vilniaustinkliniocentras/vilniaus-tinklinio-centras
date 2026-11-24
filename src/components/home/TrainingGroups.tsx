@@ -45,6 +45,11 @@ export function TrainingGroups() {
                     {group.schedule}
                   </p>
                 )}
+                {group.waitlistOnly ? (
+                  <p className="relative mt-4 inline-flex rounded-full bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-900 ring-1 ring-inset ring-amber-200">
+                    Grupė pilna
+                  </p>
+                ) : null}
               </article>
             </AnimateIn>
           ))}

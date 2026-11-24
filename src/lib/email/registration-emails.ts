@@ -9,6 +9,7 @@ const ADMIN_EMAIL = "vilniaustinkliniocentras@gmail.com";
 
 export interface RegistrationEmailPayload extends RegistrationFormData {
   preferredTrainingTimes: string | null;
+  isWaitlist: boolean;
 }
 
 function getResendClient(): Resend | null {
@@ -65,13 +66,22 @@ function emailLayout(content: string): string {
 </html>`;
 }
 
-function buildConfirmationEmailHtml(): string {
-  const content = `
+function buildConfirmationEmailHtml(isWaitlist: boolean): string {
+  const intro = isWaitlist
+    ? `
+    <p style="margin:0 0 16px;">Sveiki,</p>
+    <p style="margin:0 0 16px;">Dėkojame, kad užregistravote vaiką į Vilniaus tinklinio centrą.</p>
+    <p style="margin:0 0 16px;">Pasirinkta 19:00–20:00 grupė šiuo metu pilna, todėl vaikas įrašytas į laukiančiųjų sąrašą.</p>
+    <p style="margin:0 0 16px;">Susisieksime, kai šioje grupėje atsiras vieta. Kol vaikas yra laukiančiųjų sąraše, sutartis nesiunčiama ir mokestis neskaičiuojamas.</p>`
+    : `
     <p style="margin:0 0 16px;">Sveiki,</p>
     <p style="margin:0 0 16px;">Dėkojame, kad užregistravote vaiką į Vilniaus tinklinio centrą.</p>
     <p style="margin:0 0 16px;">Jūsų registracija sėkmingai gauta.</p>
     <p style="margin:0 0 16px;">Per artimiausias 24 valandas su Jumis susisieks treneris arba administracija dėl pirmosios treniruotės.</p>
-    <p style="margin:0 0 16px;">Pirmoji treniruotė – nemokama ir be ilgalaikių įsipareigojimų.</p>
+    <p style="margin:0 0 16px;">Pirmoji treniruotė – nemokama ir be ilgalaikių įsipareigojimų.</p>`;
+
+  const content = `
+    ${intro}
     <p style="margin:0 0 8px;font-weight:700;color:#1f2f86;">Treniruočių vieta:</p>
     <p style="margin:0 0 16px;">${escapeHtml(siteConfig.contact.venue)}<br />${escapeHtml(siteConfig.contact.address)}</p>
     <p style="margin:0 0 8px;font-weight:700;color:#1f2f86;">Jeigu turite klausimų:</p>
@@ -100,6 +110,7 @@ function buildAdminEmailHtml(payload: RegistrationEmailPayload): string {
     ["Tinklinio patirtis", payload.experience],
     ["Pasirinkta treniruočių grupė", formatTrainingGroupDisplay(payload.trainingGroup)],
     ["Treniruočių laikas", scheduleDisplay],
+    ["Laukiančiųjų sąrašas", payload.isWaitlist ? "Taip" : "Ne"],
     ["Kaip apie mus sužinojo", payload.referralSource],
     ["Papildoma informacija", payload.comments.trim() || "—"],
   ];
@@ -158,12 +169,16 @@ export async function sendRegistrationEmails(
   const results = await Promise.allSettled([
     sendEmail(resend, {
       to: parentEmail,
-      subject: "Registracija gauta – Vilniaus tinklinio centras",
-      html: buildConfirmationEmailHtml(),
+      subject: payload.isWaitlist
+        ? "Įrašyta į laukiančiųjų sąrašą – Vilniaus tinklinio centras"
+        : "Registracija gauta – Vilniaus tinklinio centras",
+      html: buildConfirmationEmailHtml(payload.isWaitlist),
     }),
     sendEmail(resend, {
       to: ADMIN_EMAIL,
-      subject: `Nauja registracija – ${childName}`,
+      subject: payload.isWaitlist
+        ? `Nauja registracija į laukiančiųjų sąrašą – ${childName}`
+        : `Nauja registracija – ${childName}`,
       html: buildAdminEmailHtml(payload),
     }),
   ]);

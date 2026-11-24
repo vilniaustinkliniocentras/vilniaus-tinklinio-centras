@@ -1,6 +1,7 @@
 "use server";
 
 import { isAdminAuthenticated } from "@/lib/admin/auth";
+import { waitlistBlocksNewContract } from "@/lib/admin/waitlist";
 import { generateSignedContractUploadToken } from "@/lib/storage/signed-contract-upload-token";
 import { buildSignedContractUploadUrl } from "@/lib/storage/signed-contract-upload-url";
 
@@ -20,6 +21,11 @@ export async function createSignedContractUploadLink(
 
   if (!UUID_REGEX.test(registrationId)) {
     return { success: false, message: "Neteisingas registracijos identifikatorius." };
+  }
+
+  const waitlistBlock = await waitlistBlocksNewContract(registrationId);
+  if (waitlistBlock.blocked) {
+    return { success: false, message: waitlistBlock.message };
   }
 
   const tokenResult = await generateSignedContractUploadToken(registrationId);

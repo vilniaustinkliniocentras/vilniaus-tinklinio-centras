@@ -24,6 +24,7 @@ export function RegistrationsAdminPanel({
 }: RegistrationsAdminPanelProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<RegistrationStatus | "all">("all");
+  const [listFilter, setListFilter] = useState<"all" | "waitlist">("all");
   const [localRegistrations, setLocalRegistrations] = useState(registrations);
 
   useEffect(() => {
@@ -36,6 +37,7 @@ export function RegistrationsAdminPanel({
     return localRegistrations
       .filter((row) => {
         if (statusFilter !== "all" && row.status !== statusFilter) return false;
+        if (listFilter === "waitlist" && row.is_waitlist !== true) return false;
         if (!query) return true;
 
         return (
@@ -49,7 +51,9 @@ export function RegistrationsAdminPanel({
         (a, b) =>
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
-  }, [localRegistrations, search, statusFilter]);
+  }, [localRegistrations, search, statusFilter, listFilter]);
+
+  const waitlistCount = localRegistrations.filter((row) => row.is_waitlist === true).length;
 
   function handleStatusUpdated(id: string, status: RegistrationStatus) {
     setLocalRegistrations((prev) =>
@@ -70,7 +74,7 @@ export function RegistrationsAdminPanel({
   return (
     <div className="space-y-6">
       <div className="rounded-xl border border-vtc-gray-200 bg-white p-4 shadow-sm sm:p-5">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_auto] lg:items-end">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_auto_auto] lg:items-end">
           <div>
             <label htmlFor="admin-search" className="mb-1.5 block text-sm font-medium text-gray-700">
               Paieška
@@ -105,11 +109,33 @@ export function RegistrationsAdminPanel({
               ))}
             </select>
           </div>
+
+          <div>
+            <label htmlFor="admin-list-filter" className="mb-1.5 block text-sm font-medium text-gray-700">
+              Sąrašas
+            </label>
+            <select
+              id="admin-list-filter"
+              value={listFilter}
+              onChange={(e) => setListFilter(e.target.value as "all" | "waitlist")}
+              className="w-full rounded-lg border border-vtc-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 focus:border-vtc-navy focus:ring-2 focus:ring-vtc-navy/10 sm:min-w-[200px]"
+            >
+              <option value="all">Visos registracijos</option>
+              <option value="waitlist">Laukiančiųjų sąrašas</option>
+            </select>
+          </div>
         </div>
 
         <p className="mt-4 text-sm text-gray-500">
           Rodoma: <span className="font-medium text-gray-700">{filtered.length}</span> iš{" "}
           <span className="font-medium text-gray-700">{localRegistrations.length}</span> registracijų
+          {" · "}
+          Laukiančiųjų sąraše:{" "}
+          <span className="font-medium text-gray-700">{waitlistCount}</span>
+        </p>
+        <p className="mt-2 text-sm text-amber-900">
+          Laukiančiųjų sąrašo vaikams sutartis nesiunčiama, jie nepridedami prie aktyvių
+          sportininkų ir mokestis neskaičiuojamas. Į aktyvią grupę perkelkite stulpelyje „Lankymas“.
         </p>
       </div>
 

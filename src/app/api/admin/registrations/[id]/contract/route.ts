@@ -1,6 +1,7 @@
 import { type NextRequest } from "next/server";
 import { isAdminAuthenticatedFromRequest } from "@/lib/admin/auth";
 import { fetchRegistrationById } from "@/lib/admin/registrations";
+import { waitlistBlocksNewContract } from "@/lib/admin/waitlist";
 import { generateContractPdf } from "@/lib/contracts/generate-contract-pdf";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,11 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
   if (!registration) {
     return new Response("Not found", { status: 404 });
+  }
+
+  const waitlistBlock = await waitlistBlocksNewContract(id);
+  if (waitlistBlock.blocked) {
+    return new Response(waitlistBlock.message, { status: waitlistBlock.missing ? 404 : 409 });
   }
 
   try {

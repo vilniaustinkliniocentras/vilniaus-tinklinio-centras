@@ -27,6 +27,40 @@ export async function fetchRegistrationById(id: string): Promise<Registration | 
   return data as Registration;
 }
 
+export async function setRegistrationWaitlist(
+  id: string,
+  isWaitlist: boolean
+): Promise<{ success: true } | { success: false; message: string }> {
+  if (!UUID_REGEX.test(id)) {
+    return { success: false, message: "Neteisingas registracijos identifikatorius." };
+  }
+
+  const supabase = createAdminClient();
+  if (!supabase) {
+    return {
+      success: false,
+      message: "Supabase administracijos konfigūracija nebaigta.",
+    };
+  }
+
+  const { data, error } = await supabase
+    .from("registrations")
+    .update({ is_waitlist: isWaitlist })
+    .eq("id", id)
+    .select("id, is_waitlist")
+    .maybeSingle();
+
+  if (error || !data || data.is_waitlist !== isWaitlist) {
+    console.error("Failed to update waitlist flag:", error?.message ?? "No rows updated");
+    return {
+      success: false,
+      message: "Nepavyko atnaujinti laukiančiųjų sąrašo žymos.",
+    };
+  }
+
+  return { success: true };
+}
+
 export async function markContractSent(
   id: string,
   email: string
